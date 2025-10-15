@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/
+.DS_Store
+
+# Ignore MySQL runtime data (used by local docker/mysql containers)
+mysql_data/
+# Specific MySQL runtime files that should not be tracked
+mysql_data/mysql.sock
+mysql_data/ib_logfile*
+mysql_data/ibdata*
+mysql_data/ib_buffer_pool
+mysql_data/binlog.*
+mysql_data/auto.cnf
+mysql_data/binlog.index
+
+# If you want to ignore only MySQL runtime artifacts but keep initialization SQL,
+# place schema or seed SQL files in src/sql or docker-entrypoint-initdb.d and track those instead.
