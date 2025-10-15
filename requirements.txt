@@ -1,0 +1,10 @@
+sqlalchemy>=1.4
+psycopg2-binary
+pandas
+pymysql
+requests
+beautifulsoup4
+lxml
+python-dotenv
+prefect  # optional orchestration
+great_expectations  # optional DQ

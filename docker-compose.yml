@@ -1,0 +1,30 @@
+version: "3.8" # OK, but can be removed for modern Compose V2
+services:
+  db:
+    image: mysql:8.0
+    container_name: epl_mysql
+    restart: unless-stopped
+    environment:
+      # NOTE: For production, use a secret file or .env variable instead of '1234'
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: epl_dw
+    ports:
+      # CRITICAL FIX: Host:Container. MySQL runs on 3306 internally.
+      - "3307:3306" 
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+      - ./src/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    # Optional: Link Adminer to the database service
+    depends_on:
+      - db
