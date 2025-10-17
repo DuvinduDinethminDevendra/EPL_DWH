@@ -6,9 +6,7 @@ from sqlalchemy import text
 
 
 def upsert_dim(engine, table_name, df, key_columns):
-    """Naive upsert placeholder: deletes matching keys then inserts.
-    Not suitable for production SCD logic; replace with proper SQL or SQLAlchemy models.
-    """
+
     with engine.begin() as conn:
         for _, row in df.iterrows():
             where_clause = " AND ".join([f"{k} = :{k}" for k in key_columns])

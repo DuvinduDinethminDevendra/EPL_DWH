@@ -16,5 +16,3 @@ mysql_data/binlog.*
 mysql_data/auto.cnf
 mysql_data/binlog.index
 
-# If you want to ignore only MySQL runtime artifacts but keep initialization SQL,
-# place schema or seed SQL files in src/sql or docker-entrypoint-initdb.d and track those instead.
