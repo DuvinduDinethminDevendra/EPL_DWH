@@ -69,6 +69,10 @@ Run the following command in the project root directory. This will download the 
 ```bash
 docker-compose up -d
 ```
+OR IF NEED TO CREATE A LOCAL INSTANCE AS WELL
+```bash
+mysql -u root -p1234 < "src\sql\create_schema.sql"
+```
 
 ### 3\. Setup Python Environment
 
@@ -84,6 +88,10 @@ py -m venv .venv
 
 # Activate the environment (Required for every new terminal session)
 . .venv/Scripts/Activate.ps1
+```
+If you wont to run the v env in comman promt
+```command prompt
+.venv\Scripts\activate.bat
 ```
 
 *(Your prompt should now start with `(.venv)`)*
