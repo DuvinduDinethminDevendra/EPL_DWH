@@ -103,7 +103,7 @@ pip install -r requirements.txt
 
 ### 4\. Run the ETL Pipeline
 
-Once the database container is running and the Python environment is active, you can run your main ETL script.
+sOnce the database container is running and the Python environment is active, you can run your main ETL script.
 
 ```bash
 python src/etl/main.py 
