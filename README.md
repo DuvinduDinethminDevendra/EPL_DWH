@@ -69,6 +69,10 @@ Run the following command in the project root directory. This will download the 
 ```bash
 docker-compose up -d
 ```
+OR IF NEED TO CREATE A LOCAL INSTANCE AS WELL
+```bash
+mysql -u root -p1234 < "src\sql\create_schema.sql"
+```
 
 ### 3\. Setup Python Environment
 
