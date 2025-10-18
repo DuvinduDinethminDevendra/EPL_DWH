@@ -89,6 +89,10 @@ py -m venv .venv
 # Activate the environment (Required for every new terminal session)
 . .venv/Scripts/Activate.ps1
 ```
+If you wont to run the v env in comman promt
+```command prompt
+.venv\Scripts\activate.bat
+```
 
 *(Your prompt should now start with `(.venv)`)*
 
