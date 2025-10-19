@@ -3,8 +3,10 @@ from pathlib import Path
 from ..extract.csv_reader import read_csv
 from importlib_metadata import files
 from ..db import get_engine
+from sqlalchemy import text
 import pandas as pd
 import datetime as dateTime
+
 
 
 # Create a list of csv files in the data/raw directory (project root -> data/raw)
@@ -17,7 +19,7 @@ def list_csv_files(directory):
     files = [str(f) for f in p.rglob("*.csv")]
     return files
 
-
+# Write staging table from CSV files
 def write_staging_from_csv():
     _table_name = "stg_e0_match_raw"
     _log_table_name = "ETL_File_Manifest"
@@ -25,48 +27,54 @@ def write_staging_from_csv():
     number_of_files = len(csv_files)
     engine = get_engine()
     for f in csv_files:
+        check_file_existence_query = f"SELECT COUNT(*) FROM ETL_File_Manifest WHERE file_name = '{Path(f).name}'"
+        with engine.connect() as conn:
+            result = conn.execute(text(check_file_existence_query))
+        file_exists = result.scalar() > 0
         # write each CSV to the same staging table, appending if it exists
-        """ds = pd.DataFrame()
-        ds["file_name"] = f
-        ds["load_start_time"] = s_time
-        ds["load_end_time"] = None
-        ds["rows_processed"] = 0
-        ds["error_message"] = None
-        ds["status"] = "started"
-        ds["league_div"] = df['Div'].iloc[0] if 'Div' in df.columns else None """
-        file_name = Path(f).name
-        load_start = dateTime.datetime.now()
-        load_end = None
-        status = 'Failure'  # Default to failure until success is confirmed
-        rows_processed = 0
-        error_msg = None
-        league_div = None
-        try:
-            df = read_csv(f)
-            if 'Div' in df.columns and not df.empty:
-                league_div = df['Div'].iloc[0]
-            inserted_rows = df.to_sql(_table_name, engine, if_exists="append", index=False)
-            rows_processed = inserted_rows if inserted_rows is not None else df.shape[0]
-            status = 'Success'
-
-        except Exception as e:
-            error_msg = str(e)
-        finally:
-            load_end = dateTime.datetime.now()
-            # Log the ETL process details
-            log_df = pd.DataFrame([{
-                "file_name": file_name,
-                "load_start_time": load_start.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-                "load_end_time": load_end.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-                "rows_processed": rows_processed,
-                "error_message": error_msg,
-                "status": status,
-                "league_div": league_div
-            }])
+        if not file_exists:
+            print(f"Processing file {f} ({number_of_files} total files)...")
+            file_name = Path(f).name
+            load_start = dateTime.datetime.now()
+            load_end = None
+            status = 'Failure'  # Default to failure until success is confirmed
+            rows_processed = 0
+            error_msg = None
+            league_div = None
             try:
-                log_df.to_sql(_log_table_name, engine, if_exists="append", index=False)
+                df = read_csv(f)
+                if 'Div' in df.columns and not df.empty:
+                    league_div = df['Div'].iloc[0]
+                inserted_rows = df.to_sql(_table_name, engine, if_exists="append", index=False)
+                rows_processed = inserted_rows if inserted_rows is not None else df.shape[0]
+                status = 'Success'
+
             except Exception as e:
-                print(f"Failed to log end of ETL for file {f}: {e}")
+                error_msg = str(e)
+            finally:
+                load_end = dateTime.datetime.now()
+                # Log the ETL process details
+                log_df = pd.DataFrame([{
+                    "file_name": file_name,
+                    "load_start_time": load_start.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                    "load_end_time": load_end.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                    "rows_processed": rows_processed,
+                    "error_message": error_msg,
+                    "status": status,
+                    "league_div": league_div
+                }])
+                try:
+                    log_df.to_sql(_log_table_name, engine, if_exists="append", index=False)
+                except Exception as e:
+                    print(f"Failed to log end of ETL for file {f}: {e}")
+        else:
+            # If the file exists in the manifest, skip processing
+            print(f"File {f} already processed, skipping.")
+
+    return True
+
+# Write staging table from API data
+def write_staging_from_api():
 
     return True
 

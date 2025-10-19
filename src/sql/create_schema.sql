@@ -22,6 +22,7 @@ DROP TABLE IF EXISTS dim_season;
 -- Drop Staging and Control tables
 DROP TABLE IF EXISTS ETL_Log;
 DROP TABLE IF EXISTS ETL_File_Manifest;
+DROP TABLE IF EXISTS ETL_Api_Manifest;
 
 -- Drop old, generic staging tables (if they exist)
 DROP TABLE IF EXISTS staging_matches;
@@ -29,7 +30,8 @@ DROP TABLE IF EXISTS staging_players;
 DROP TABLE IF EXISTS staging_teams;
 DROP TABLE IF EXISTS staging_referees;
 DROP TABLE IF EXISTS staging_dates;
-DROP TABLE IF EXISTS stg_e0_match_raw;  
+DROP TABLE IF EXISTS stg_e0_match_raw;
+DROP TABLE IF EXISTS stg_team_raw;  
 
 
 -- Re-enable foreign key checks
@@ -62,6 +64,21 @@ CREATE TABLE IF NOT EXISTS ETL_File_Manifest (
     error_message TEXT
 ) ENGINE=InnoDB;
 
+-- table to track API calls and data loads
+CREATE TABLE IF NOT EXISTS ETL_Api_Manifest (
+    api_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    api_name VARCHAR(255) NOT NULL,         -- e.g., 'football-data.org'
+    endpoint VARCHAR(255) NOT NULL,         -- e.g., '/competitions/PL/teams'
+    season INT,                              -- optional: specific season year
+    load_start_time DATETIME NOT NULL,
+    load_end_time DATETIME,
+    status VARCHAR(20) NOT NULL,             -- 'SUCCESS', 'FAILED', 'IN_PROGRESS'
+    rows_processed INT,
+    error_message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_api_call (api_name, endpoint, season)
+) ENGINE=InnoDB;
+
 
 
 -- STAGING TABLES (By Entity)
@@ -74,6 +91,7 @@ CREATE TABLE IF NOT EXISTS stg_e0_match_raw (
     `Div` VARCHAR(5),
     `Date` DATE,
     `Time` TIME,
+    season VARCHAR(20), 
     HomeTeam VARCHAR(255),
     AwayTeam VARCHAR(255),
     FTHG INT,
@@ -96,6 +114,37 @@ CREATE TABLE IF NOT EXISTS stg_e0_match_raw (
     HR INT,
     AR INT,
     load_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+
+-- Staging table for team data (from football-data.org API or similar)
+CREATE TABLE IF NOT EXISTS stg_team_raw (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255),
+    shortName VARCHAR(255),
+    tla VARCHAR(10),
+    crest VARCHAR(512),
+    address VARCHAR(255),
+    website VARCHAR(255),
+    founded INT,
+    clubColors VARCHAR(100),
+    venue VARCHAR(255),
+    runningCompetitions JSON,
+    squad JSON,
+    staff JSON,
+    lastUpdated DATETIME,
+    area_id INT,
+    area_name VARCHAR(255),
+    area_code VARCHAR(10),
+    area_flag VARCHAR(512),
+    coach_id INT,
+    coach_firstName VARCHAR(100),
+    coach_lastName VARCHAR(100),
+    coach_name VARCHAR(255),
+    coach_dateOfBirth DATE,
+    coach_nationality VARCHAR(100),
+    coach_contract_start DATE,
+    coach_contract_until DATE
 ) ENGINE=InnoDB;
 
 

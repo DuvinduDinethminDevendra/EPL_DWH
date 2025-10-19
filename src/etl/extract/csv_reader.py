@@ -54,11 +54,16 @@ def read_csv(path: Union[str, Path], **kwargs) -> pd.DataFrame:
         df['HomeTeam'].str.replace(" ", "") + "_" +
         df['AwayTeam'].str.replace(" ", "")
     )
+    df['season'] = (
+        df['Date'].dt.year.where(df['Date'].dt.month < 7, df['Date'].dt.year ).astype(str).str.zfill(4) +
+        '/' +
+        df['Date'].dt.year.where(df['Date'].dt.month < 7, df['Date'].dt.year + 1).astype(str).str.zfill(4)
+    )
 
     
     # Final Filter and Order
     TARGET_COLS_ORDER = [
-        'match_source_key', 'Div', 'Date', 'Time', 'HomeTeam', 'AwayTeam', 
+        'match_source_key', 'Div', 'Date', 'Time', 'season', 'HomeTeam', 'AwayTeam', 
         'FTHG', 'FTAG', 'FTR', 'HTHG', 'HTAG', 'HTR', 'Referee', 
         'HS', 'AS', 'HST', 'AST', 'HF', 'AF', 'HC', 'AC', 
         'HY', 'AY', 'HR', 'AR'
@@ -92,7 +97,7 @@ def read_csv(path: Union[str, Path], **kwargs) -> pd.DataFrame:
 
     return df
 
-"""
+"""--- IGNORE ---
 if __name__ == "__main__":
     # quick local test (won't run in environments without the CSV file)
     sample_csv_path = Path(__file__).resolve().parents[3] / "data" / "raw" / "csv" / "E0Season_20232024.csv"

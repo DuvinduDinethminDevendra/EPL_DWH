@@ -6,7 +6,7 @@ from sqlalchemy import text
 
 
 def upsert_dim(engine, table_name, df, key_columns):
-
+    
     with engine.begin() as conn:
         for _, row in df.iterrows():
             where_clause = " AND ".join([f"{k} = :{k}" for k in key_columns])

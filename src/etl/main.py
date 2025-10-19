@@ -15,9 +15,7 @@ def run_demo(csv_path):
     pd.set_option("display.max_columns", 5)
     pd.set_option("display.width", 200)
     print(df)       
-    print("-------")
-    print("All CSVs Combined:")
-    print(csv_reader.read_all_csvs())
+
 def main():
     parser = argparse.ArgumentParser(description="Run simple ETL demo")
     parser.add_argument("csv", nargs="?", help="Path to a sample CSV file")
