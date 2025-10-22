@@ -6,5 +6,7 @@ requests
 beautifulsoup4
 lxml
 python-dotenv
+selenium
+webdriver-manager
 prefect  # optional orchestration
 great_expectations  # optional DQ

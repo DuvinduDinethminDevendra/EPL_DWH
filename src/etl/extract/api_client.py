@@ -74,9 +74,9 @@ def log_api_call(
                 "error_message": error_message
             })
             conn.commit()
-            print(f"✓ Logged API call: {api_name} {endpoint} season={season} status={status}")
+            print(f"OK Logged API call: {api_name} {endpoint} season={season} status={status}")
     except Exception as e:
-        print(f"✗ Error logging API call to manifest: {e}")
+        print(f"ERROR logging API call to manifest: {e}")
         # Don't raise - logging failure shouldn't break the main process
 
 
@@ -222,7 +222,7 @@ def fetch_and_load_team_data_for_years(start_year: int = 2023, end_year: int | N
                 rows_processed=rows_loaded
             )
             
-            print(f"  ✓ Loaded {rows_loaded} teams for season {year}")
+            print(f"  OK Loaded {rows_loaded} teams for season {year}")
             
         except Exception as e:
             failed_years += 1
@@ -240,13 +240,13 @@ def fetch_and_load_team_data_for_years(start_year: int = 2023, end_year: int | N
                 error_message=error_msg
             )
             
-            print(f"  ✗ Error fetching teams for season {year}: {e}")
+            print(f"  ERROR fetching teams for season {year}: {e}")
             continue
     
     print(f"\n{'='*60}")
     print(f"Summary: Loaded {total_rows_loaded} total teams")
-    print(f"  ✓ Successful years: {successful_years}")
-    print(f"  ✗ Failed years: {failed_years}")
+    print(f"  OK Successful years: {successful_years}")
+    print(f"  ERROR Failed years: {failed_years}")
     print(f"{'='*60}\n")
 
 
