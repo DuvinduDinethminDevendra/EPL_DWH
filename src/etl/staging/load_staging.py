@@ -1,6 +1,8 @@
 """Functions to write staging tables."""
 from pathlib import Path
 from ..extract.csv_reader import read_csv
+from ..extract.api_client import fetch_and_load_team_data_for_years
+from ..extract.json_reader import JSONReader
 from importlib_metadata import files
 from ..db import get_engine
 from sqlalchemy import text
@@ -10,7 +12,6 @@ import datetime as dateTime
 
 
 # Create a list of csv files in the data/raw directory (project root -> data/raw)
-
 _csvPath = Path(__file__).resolve().parents[3] / "data" / "raw"
 def list_csv_files(directory):
     p = Path(directory)
@@ -74,9 +75,35 @@ def write_staging_from_csv():
     return True
 
 # Write staging table from API data
-def write_staging_from_api():
+def write_staging_from_api(start_year: int = 2023, end_year: int = None):
+    """Load team data from football-data.org API for multiple seasons."""
+    print(f"\nLoading team data from API (football-data.org)...")
+    try:
+        fetch_and_load_team_data_for_years(start_year=start_year, end_year=end_year)
+        print("API data loading completed successfully!")
+        return True
+    except Exception as e:
+        print(f"Error loading API data: {e}")
+        return False
 
-    return True
+
+# Write staging table from JSON data
+def write_staging_from_json():
+    """Load player data from JSON files into stg_player_raw."""
+    print(f"\nLoading player data from JSON files...")
+    try:
+        json_dir = Path(__file__).resolve().parents[3] / "data" / "raw" / "json"
+        if not json_dir.exists():
+            print(f"JSON directory not found: {json_dir}")
+            return False
+        
+        reader = JSONReader(str(json_dir))
+        reader.read_json_files()
+        print("JSON data loading completed successfully!")
+        return True
+    except Exception as e:
+        print(f"Error loading JSON data: {e}")
+        return False
 
 
 def write_staging(df, table_name, if_exists="replace"):
@@ -84,7 +111,65 @@ def write_staging(df, table_name, if_exists="replace"):
     df.to_sql(table_name, engine, if_exists=if_exists, index=False)
     return True
 
+
+def load_dim_player():
+    """Load distinct players from stg_player_raw into dim_player dimension table."""
+    print("\nLoading player dimension from staging table...")
+    try:
+        engine = get_engine()
+        
+        # SQL to insert distinct players with ON DUPLICATE KEY UPDATE
+        sql = """
+        INSERT INTO dim_player (player_name, created_at)
+        SELECT DISTINCT player_name, NOW()
+        FROM stg_player_raw
+        WHERE player_name IS NOT NULL
+        ON DUPLICATE KEY UPDATE
+            created_at = VALUES(created_at);
+        """
+        
+        with engine.connect() as conn:
+            result = conn.execute(text(sql))
+            conn.commit()
+            rows_affected = result.rowcount
+        
+        print(f"Loaded {rows_affected} distinct players into dim_player")
+        return True
+    except Exception as e:
+        print(f"Error loading dim_player: {e}")
+        return False
+
+
+def load_all_staging():
+    """Master orchestration function - load all staging tables from all sources."""
+    print("\n" + "="*70)
+    print("ETL STAGING LOAD - UNIFIED ORCHESTRATION")
+    print("="*70)
+    
+    results = {}
+    
+    # Load JSON data (players)
+    results['json'] = write_staging_from_json()
+    
+    # Load API data (teams)
+    results['api'] = write_staging_from_api()
+    
+    # Load CSV data (matches)
+    results['csv'] = write_staging_from_csv()
+    
+    # Print summary
+    print("\n" + "="*70)
+    print("ETL STAGING LOAD SUMMARY")
+    print("="*70)
+    print(f"JSON (Players): {'SUCCESS' if results['json'] else 'FAILED'}")
+    print(f"API (Teams): {'SUCCESS' if results['api'] else 'FAILED'}")
+    print(f"CSV (Matches): {'SUCCESS' if results['csv'] else 'FAILED'}")
+    print("="*70 + "\n")
+    
+    return all(results.values())
+
+
 # test run for this file
 
 if __name__ == "__main__":
-    write_staging_from_csv()
+    load_all_staging()
