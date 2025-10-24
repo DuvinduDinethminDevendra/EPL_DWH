@@ -111,11 +111,157 @@ pip install -r requirements.txt
 
 ### 4\. Run the ETL Pipeline
 
-sOnce the database container is running and the Python environment is active, you can run your main ETL script.
+Once the database container is running and the Python environment is active, you can run the ETL pipeline.
 
+**Complete ETL Pipeline (Recommended):**
 ```bash
-python -m src.etl.main
- ```
+python -m src.etl.main --full-etl
+```
+
+**Run Only Staging Load:**
+```bash
+python -m src.etl.main --staging
+```
+
+**Run Only Warehouse Load:**
+```bash
+python -m src.etl.main --warehouse
+```
+
+**Test Database Connectivity:**
+```bash
+python -m src.etl.main --test-db
+```
+
+## ETL Pipeline Overview
+
+The project implements a complete ETL pipeline with three main stages:
+
+### **Stage 1: Staging (Extract & Load)**
+Loads raw data from multiple sources into staging tables:
+
+| Source | Format | Target Table | Records |
+|--------|--------|--------------|---------|
+| **JSON Files** | JSON | `stg_player_raw` | ~6,834 players |
+| **API (football-data.org)** | REST API | `stg_team_raw` | ~60 teams |
+| **CSV Files** | CSV | `stg_e0_match_raw` | ~830 matches |
+| **Excel Files** | XLSX | `stg_referee_raw`, `dim_stadium` | ~32 referees, ~32 stadiums |
+
+**Key Features:**
+- ✅ Idempotent processing (skips already-loaded files)
+- ✅ Comprehensive audit trail via manifest tables
+- ✅ Error logging and recovery
+- ✅ Smart Excel sheet detection (finds appropriate sheets by name)
+
+### **Stage 2: Transform & Load (Dimensions)**
+Cleans and transforms staging data into dimension tables:
+
+| Dimension | Records | Key Attributes |
+|-----------|---------|-----------------|
+| `dim_date` | 17,803 | Calendar 1992-2040 with week numbers |
+| `dim_team` | 25 | Team name, code, city |
+| `dim_player` | 6,834 | Player name, position, nationality |
+| `dim_referee` | 32 | Name, DOB, nationality, PL debut, status |
+| `dim_stadium` | 32 | Name, capacity, city, club, coordinates |
+| `dim_season` | 6 | Season name, start/end dates |
+
+**Cleaning Logic:**
+- Standardizes team names (handles "Man City" → "Manchester City" mappings)
+- Removes duplicates and null values
+- Creates surrogate keys and business keys
+
+### **Stage 3: Load (Facts)**
+Loads fact tables with foreign key references to dimensions:
+
+| Fact Table | Records | Measures |
+|-----------|---------|----------|
+| `fact_match` | 830 | Goals, shots, fouls, cards, results |
+| `fact_match_events` | - | Event type, player, minute (ready) |
+| `fact_player_stats` | - | Minutes, goals, assists, cards (ready) |
+
+## Data Sources
+
+### Excel Files
+Place Excel files in `data/raw/xlsx/` folder. The system automatically detects:
+- **Referee files** (containing "referee" in filename) → loads to `stg_referee_raw`
+- **Stadium files** (containing "stadium" in filename) → loads to `dim_stadium`
+
+**Expected Column Names:**
+- **Referees:** `Referee_Name`, `Date_of_Birth`, `Nationality`, `Premier_League_Debut`, `Status`, `Notes`
+- **Stadiums:** `Stadium_Name`, `Capacity`, `City`, `Club`, `Opened`, `Coordinates`, `Notes`
+
+### API Integration
+- **football-data.org API** - Fetches current team data for seasons 2023-2025
+- Stores full API responses including squads and staff details
+
+### CSV Files
+- **E0 Series (fbref)** - Match results from football-reference.com
+- Supports multiple seasons and divisions
+
+### JSON Files
+- **Squad data** - Player information from football-data.org
+- Nested player and staff information
+
+## Data Warehouse Schema
+
+### Key Design Patterns
+
+**1. Date Dimension (Type 1 - Slowly Changing)**
+- Pre-populated calendar from 1992 to 2040
+- Supports week-based analysis
+- Extensible for match day flags
+
+**2. Team Conformation**
+- Uses CASE statement CTE to map raw team names to canonical forms
+- Handles abbreviations and historical naming variations
+
+**3. Surrogate Keys**
+- Sentinel rows (-1) for unknown/missing dimensions
+- Ensures referential integrity with NOT NULL constraints
+
+**4. Audit Trail**
+- `ETL_Log` - Records all ETL job execution details
+- `ETL_File_Manifest` - Tracks CSV file loads
+- `ETL_Api_Manifest` - Tracks API calls
+- `ETL_Excel_Manifest` - Tracks Excel file loads
+- `ETL_JSON_Manifest` - Tracks JSON file loads
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│         DATA EXTRACTION LAYER                   │
+├─────────────────────────────────────────────────┤
+│ JSON Reader │ API Client │ CSV Reader │ Excel   │
+│             │            │           │ Reader  │
+└──────────────┬───────────┬───────────┬──────────┘
+               │           │           │
+┌──────────────▼───────────▼───────────▼──────────┐
+│        STAGING TABLES (Raw Data)                │
+├──────────────────────────────────────────────────┤
+│ stg_player_raw │ stg_team_raw │ stg_e0_match... │
+│ stg_referee_raw │ stg_player_stats_fbref      │
+└─────────────┬──────────────────────────────────┘
+              │
+┌─────────────▼──────────────────────────────────┐
+│        TRANSFORM & CLEAN LAYER                 │
+├──────────────────────────────────────────────────┤
+│ Deduplication │ Standardization │ Conformation │
+└────────────┬─────────────────────────────────┘
+             │
+┌────────────▼──────────────────────────────────┐
+│    DIMENSION TABLES (Conformed Data)          │
+├──────────────────────────────────────────────────┤
+│ dim_date │ dim_team │ dim_player │ dim_referee │
+│ dim_stadium │ dim_season                       │
+└────────────┬─────────────────────────────────┘
+             │
+┌────────────▼──────────────────────────────────┐
+│      FACT TABLES (Analysis Ready)             │
+├──────────────────────────────────────────────────┤
+│ fact_match │ fact_match_events │ fact_player...│
+└──────────────────────────────────────────────────┘
+```
 
 ## Database Connection Details
 

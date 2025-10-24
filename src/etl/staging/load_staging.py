@@ -3,6 +3,7 @@ from pathlib import Path
 from ..extract.csv_reader import read_csv
 from ..extract.api_client import fetch_and_load_team_data_for_years
 from ..extract.json_reader import JSONReader
+from ..extract.excel_reader import load_excel_data
 from importlib_metadata import files
 from ..db import get_engine
 from sqlalchemy import text
@@ -106,6 +107,24 @@ def write_staging_from_json():
         return False
 
 
+def write_staging_from_excel():
+    """Load Excel data (referees, stadiums, etc.) from xlsx files."""
+    print(f"\nLoading Excel data from xlsx files...")
+    try:
+        results = load_excel_data()
+        if results:
+            print(f"Excel data loading completed successfully! Processed {len(results)} files")
+            for file_name, (rows, status) in results.items():
+                print(f"  {file_name}: {rows} rows - {status}")
+            return True
+        else:
+            print("No Excel files found to process")
+            return True  # Return True even if no files, as this is not an error
+    except Exception as e:
+        print(f"Error loading Excel data: {e}")
+        return False
+
+
 def write_staging(df, table_name, if_exists="replace"):
     engine = get_engine()
     df.to_sql(table_name, engine, if_exists=if_exists, index=False)
@@ -157,6 +176,9 @@ def load_all_staging():
     # Load CSV data (matches)
     results['csv'] = write_staging_from_csv()
     
+    # Load Excel data (referees, stadiums, etc.)
+    results['excel'] = write_staging_from_excel()
+    
     # Print summary
     print("\n" + "="*70)
     print("ETL STAGING LOAD SUMMARY")
@@ -164,6 +186,7 @@ def load_all_staging():
     print(f"JSON (Players): {'SUCCESS' if results['json'] else 'FAILED'}")
     print(f"API (Teams): {'SUCCESS' if results['api'] else 'FAILED'}")
     print(f"CSV (Matches): {'SUCCESS' if results['csv'] else 'FAILED'}")
+    print(f"Excel (Referees/Stadiums): {'SUCCESS' if results['excel'] else 'FAILED'}")
     print("="*70 + "\n")
     
     return all(results.values())

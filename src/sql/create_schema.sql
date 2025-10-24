@@ -25,6 +25,7 @@ DROP TABLE IF EXISTS dim_season;
 DROP TABLE IF EXISTS ETL_Log;
 DROP TABLE IF EXISTS ETL_File_Manifest;
 DROP TABLE IF EXISTS ETL_Api_Manifest;
+DROP TABLE IF EXISTS ETL_Excel_Manifest;
 
 DROP TABLE IF EXISTS staging_matches;
 DROP TABLE IF EXISTS staging_players;
@@ -33,6 +34,7 @@ DROP TABLE IF EXISTS staging_referees;
 DROP TABLE IF EXISTS staging_dates;
 DROP TABLE IF EXISTS stg_e0_match_raw;
 DROP TABLE IF EXISTS stg_team_raw;
+DROP TABLE IF EXISTS stg_referee_raw;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -73,6 +75,26 @@ CREATE TABLE IF NOT EXISTS ETL_Api_Manifest (
     error_message TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_api_call (api_name, endpoint, season)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS ETL_Excel_Manifest (
+    excel_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    file_name VARCHAR(255) NOT NULL UNIQUE,
+    file_path VARCHAR(255) NOT NULL,
+    sheet_name VARCHAR(255),
+    data_type VARCHAR(100),
+    load_start_time DATETIME NOT NULL,
+    load_end_time DATETIME,
+    status VARCHAR(20) NOT NULL,
+    rows_processed INT,
+    error_message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_file_name (file_name),
+    INDEX idx_file_path (file_path),
+    INDEX idx_data_type (data_type),
+    INDEX idx_status (status),
+    INDEX idx_load_start_time (load_start_time),
+    INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
@@ -169,6 +191,29 @@ CREATE TABLE IF NOT EXISTS stg_player_stats_fbref (
     load_timestamp  DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS stg_referee_raw (
+    referee_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    file_name VARCHAR(255),
+    load_start_time DATETIME NOT NULL,
+    load_end_time DATETIME,
+    status VARCHAR(20),
+    rows_processed INT,
+    error_message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    -- Raw referee data fields
+    referee_name VARCHAR(255),
+    date_of_birth DATE,
+    nationality VARCHAR(100),
+    premier_league_debut DATE,
+    ref_status VARCHAR(50),
+    notes TEXT,
+    -- Indexes for performance and audit trail
+    INDEX idx_file_name (file_name),
+    INDEX idx_status (status),
+    INDEX idx_load_start_time (load_start_time),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- JSON STAGING TABLES
 CREATE TABLE IF NOT EXISTS stg_player_raw (
     json_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -258,14 +303,22 @@ CREATE TABLE IF NOT EXISTS dim_stadium (
     stadium_name VARCHAR(255),
     capacity INT,
     city VARCHAR(100),
+    club VARCHAR(255),
+    opened INT,
+    coordinates VARCHAR(100),
+    notes TEXT,
     stadium_bk VARCHAR(80) UNIQUE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS dim_referee (
     referee_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     referee_name VARCHAR(255),
-    country VARCHAR(100),
-    referee_bk VARCHAR(80) UNIQUE
+    date_of_birth DATE,
+    nationality VARCHAR(100),
+    premier_league_debut DATE,
+    status VARCHAR(50),
+    referee_bk VARCHAR(80) UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS dim_season (
@@ -366,11 +419,12 @@ INSERT IGNORE dim_season    (season_id,season_name) VALUES (-1,'Unknown Season')
 INSERT IGNORE dim_date (date_id,cal_date,year,month,day,week)
 SELECT DATE_FORMAT(d,'%Y%m%d'), d, YEAR(d), MONTH(d), DAY(d), WEEKOFYEAR(d)
 FROM (
-      SELECT DATE('1992-07-01') + INTERVAL (a.a+(10*b.a)+(100*c.a)+(1000*d.a)) DAY AS d
+      SELECT DATE('1992-07-01') + INTERVAL (a.a + (10 * b.a) + (100 * c.a) + (1000 * d.a) + (10000 * e.a)) DAY AS d
       FROM (SELECT 0 AS a UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) a
       CROSS JOIN (SELECT 0 AS a UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) b
       CROSS JOIN (SELECT 0 AS a UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) c
       CROSS JOIN (SELECT 0 AS a UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) d
+      CROSS JOIN (SELECT 0 AS a UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) e
 ) t
 WHERE d BETWEEN '1992-07-01' AND '2040-06-30';
 

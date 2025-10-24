@@ -68,6 +68,67 @@ def _log_run(
         print(f"[WARNING] Failed to log operation {process}: {e}")
 
 
+def check_staging_data_quality(engine: Engine) -> dict:
+    """Check data quality in staging tables before upsert.
+    
+    This function inspects the staging tables to identify:
+    - NULL values in key columns
+    - Empty strings and whitespace
+    - Data completeness
+    
+    Args:
+        engine: SQLAlchemy engine connected to the data warehouse
+    
+    Returns:
+        Dictionary with data quality metrics
+    """
+    print("\n" + "="*70)
+    print("DATA QUALITY CHECK - STAGING TABLES")
+    print("="*70)
+    
+    quality_report = {}
+    
+    try:
+        with engine.connect() as conn:
+            # Check referee data
+            print("\n[Referee Data Quality]")
+            referee_sql = text("""
+                SELECT 
+                    COUNT(*) as total_records,
+                    SUM(CASE WHEN referee_name IS NULL OR TRIM(referee_name) = '' THEN 1 ELSE 0 END) as missing_name,
+                    SUM(CASE WHEN date_of_birth IS NULL THEN 1 ELSE 0 END) as missing_dob,
+                    SUM(CASE WHEN nationality IS NULL OR TRIM(nationality) = '' THEN 1 ELSE 0 END) as missing_nationality,
+                    SUM(CASE WHEN premier_league_debut IS NULL THEN 1 ELSE 0 END) as missing_debut,
+                    SUM(CASE WHEN ref_status IS NULL OR TRIM(ref_status) = '' THEN 1 ELSE 0 END) as missing_status
+                FROM stg_referee_raw
+                WHERE status = 'LOADED'
+            """)
+            
+            result = conn.execute(referee_sql).fetchone()
+            if result:
+                total, missing_name, missing_dob, missing_nat, missing_debut, missing_status = result
+                quality_report['referee'] = {
+                    'total': total or 0,
+                    'missing_name': missing_name or 0,
+                    'missing_dob': missing_dob or 0,
+                    'missing_nationality': missing_nat or 0,
+                    'missing_debut': missing_debut or 0,
+                    'missing_status': missing_status or 0
+                }
+                print(f"  Total Records: {total}")
+                print(f"  Missing Referee Name: {missing_name}")
+                print(f"  Missing Date of Birth: {missing_dob}")
+                print(f"  Missing Nationality: {missing_nat}")
+                print(f"  Missing PL Debut: {missing_debut}")
+                print(f"  Missing Status: {missing_status}")
+    
+    except SQLAlchemyError as e:
+        print(f"[WARNING] Error during quality check: {e}")
+    
+    print("="*70 + "\n")
+    return quality_report
+
+
 def upsert_dim_player(engine: Engine) -> Tuple[int, int]:
     """Upserts players using a single, robust, idempotent INSERT...ON DUPLICATE KEY UPDATE."""
     process_name = "upsert_dim_player"
@@ -133,13 +194,15 @@ def upsert_dim_team(engine: Engine) -> Tuple[int, int]:
     """Upsert distinct teams from stg_team_raw to dim_team.
     
     Business key: team_name
-    Columns populated: team_name
+    Columns populated: team_name, team_code, city
     
     Data flow:
-    1. Extract distinct team names from stg_team_raw
-    2. Clean: strip whitespace, remove NULL values
-    3. Upsert to dim_team with ON DUPLICATE KEY UPDATE
-    4. Log operation to etl_log
+    1. Extract distinct teams from stg_team_raw with team_code and city
+    2. team_code: from shortName field
+    3. city: extracted from address field (first part before comma)
+    4. Clean: strip whitespace, remove NULL values
+    5. Upsert to dim_team with ON DUPLICATE KEY UPDATE
+    6. Log operation to etl_log
     
     Args:
         engine: SQLAlchemy engine connected to the data warehouse
@@ -160,15 +223,21 @@ def upsert_dim_team(engine: Engine) -> Tuple[int, int]:
     try:
         with engine.begin() as conn:
             # Upsert distinct teams from staging to dimension
+            # City extraction: get the word before the last postcode segment
+            # UK postcodes are format "XX# #XX" so we extract the word before last 2 words
             upsert_sql = text("""
-                INSERT INTO dim_team (team_name)
+                INSERT INTO dim_team (team_name, team_code, city)
                 SELECT DISTINCT 
-                    TRIM(name) AS team_name
+                    TRIM(name) AS team_name,
+                    COALESCE(TRIM(shortName), TRIM(tla)) AS team_code,
+                    TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(address, ' ', -3), ' ', 1)) AS city
                 FROM stg_team_raw
                 WHERE name IS NOT NULL 
                   AND TRIM(name) != ''
                 ON DUPLICATE KEY UPDATE
-                    team_name = VALUES(team_name)
+                    team_name = VALUES(team_name),
+                    team_code = COALESCE(VALUES(team_code), dim_team.team_code),
+                    city = COALESCE(VALUES(city), dim_team.city)
             """)
             
             result = conn.execute(upsert_sql)
@@ -244,13 +313,13 @@ def upsert_dim_stadium(engine: Engine) -> Tuple[int, int]:
 
 
 def upsert_dim_referee(engine: Engine) -> Tuple[int, int]:
-    """Upsert distinct referees from stg_e0_match_raw to dim_referee.
+    """Upsert distinct referees from stg_referee_raw to dim_referee.
     
-    Business key: referee_name (Referee column)
+    Business key: referee_name
     
     Data flow:
-    1. Extract distinct Referee from stg_e0_match_raw
-    2. Clean: strip whitespace, remove NULL values
+    1. Extract distinct referees from stg_referee_raw
+    2. Clean: strip whitespace, handle NULL values, parse dates
     3. Upsert to dim_referee with ON DUPLICATE KEY UPDATE
     4. Log operation to etl_log
     
@@ -272,20 +341,39 @@ def upsert_dim_referee(engine: Engine) -> Tuple[int, int]:
     
     try:
         with engine.begin() as conn:
-            # Upsert distinct referees from stg_e0_match_raw
+            # First, try to upsert from stg_referee_raw (Excel data with full details)
             upsert_sql = text("""
-                INSERT INTO dim_referee (referee_name)
+                INSERT INTO dim_referee (
+                    referee_name,
+                    date_of_birth,
+                    nationality,
+                    premier_league_debut,
+                    status,
+                    referee_bk
+                )
                 SELECT DISTINCT 
-                    TRIM(Referee) AS referee_name
-                FROM stg_e0_match_raw
-                WHERE Referee IS NOT NULL
+                    TRIM(referee_name) AS referee_name,
+                    date_of_birth,
+                    TRIM(nationality) AS nationality,
+                    premier_league_debut,
+                    TRIM(ref_status) AS status,
+                    TRIM(referee_name) AS referee_bk
+                FROM stg_referee_raw
+                WHERE referee_name IS NOT NULL
+                  AND TRIM(referee_name) != ''
+                  AND status = 'LOADED'
                 ON DUPLICATE KEY UPDATE
-                    referee_name = VALUES(referee_name)
+                    referee_name = VALUES(referee_name),
+                    date_of_birth = COALESCE(VALUES(date_of_birth), dim_referee.date_of_birth),
+                    nationality = COALESCE(VALUES(nationality), dim_referee.nationality),
+                    premier_league_debut = COALESCE(VALUES(premier_league_debut), dim_referee.premier_league_debut),
+                    status = COALESCE(VALUES(status), dim_referee.status),
+                    referee_bk = VALUES(referee_bk)
             """)
             
             result = conn.execute(upsert_sql)
             rows_affected = result.rowcount or 0
-            msg = f"Upserted {rows_affected} distinct referee records"
+            msg = f"Upserted {rows_affected} distinct referee records from Excel"
             
     except SQLAlchemyError as e:
         status = "FAILED"
@@ -334,6 +422,9 @@ def run_all_upserts(engine: Engine) -> dict:
     print("\n" + "="*70)
     print("DIMENSION TABLE UPSERT ORCHESTRATION")
     print("="*70)
+    
+    # Check data quality before upserting
+    quality_report = check_staging_data_quality(engine)
     
     # Upsert Players
     print("\n[1/4] Upserting dim_player...")
