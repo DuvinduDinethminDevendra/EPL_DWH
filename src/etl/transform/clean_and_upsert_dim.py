@@ -345,6 +345,7 @@ def upsert_dim_referee(engine: Engine) -> Tuple[int, int]:
             upsert_sql = text("""
                 INSERT INTO dim_referee (
                     referee_name,
+                    referee_name_short,
                     date_of_birth,
                     nationality,
                     premier_league_debut,
@@ -353,6 +354,7 @@ def upsert_dim_referee(engine: Engine) -> Tuple[int, int]:
                 )
                 SELECT DISTINCT 
                     TRIM(referee_name) AS referee_name,
+                    CONCAT(LEFT(TRIM(SUBSTRING_INDEX(referee_name, ' ', 1)), 1), ' ', TRIM(SUBSTRING_INDEX(referee_name, ' ', -1))) AS referee_name_short,
                     date_of_birth,
                     TRIM(nationality) AS nationality,
                     premier_league_debut,
@@ -364,6 +366,7 @@ def upsert_dim_referee(engine: Engine) -> Tuple[int, int]:
                   AND status = 'LOADED'
                 ON DUPLICATE KEY UPDATE
                     referee_name = VALUES(referee_name),
+                    referee_name_short = VALUES(referee_name_short),
                     date_of_birth = COALESCE(VALUES(date_of_birth), dim_referee.date_of_birth),
                     nationality = COALESCE(VALUES(nationality), dim_referee.nationality),
                     premier_league_debut = COALESCE(VALUES(premier_league_debut), dim_referee.premier_league_debut),

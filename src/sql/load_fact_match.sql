@@ -151,8 +151,18 @@ LEFT JOIN dim_date dd ON dd.cal_date = s.Date
 LEFT JOIN dim_season ds ON ds.season_name = s.Season
 LEFT JOIN dim_team dth ON dth.team_name = s.HomeTeam_conformed
 LEFT JOIN dim_team dta ON dta.team_name = s.AwayTeam_conformed
-LEFT JOIN dim_referee dr ON dr.referee_name = TRIM(s.Referee)
-LEFT JOIN dim_stadium dst ON dst.stadium_name = s.HomeTeam_conformed -- Stadium is mapped by HomeTeam name
+LEFT JOIN dim_referee dr ON (
+    dr.referee_name = TRIM(s.Referee)
+    OR dr.referee_name_short = TRIM(s.Referee)
+)
+LEFT JOIN dim_stadium dst ON (
+    dst.club = s.HomeTeam_conformed
+    OR dst.club = TRIM(SUBSTRING_INDEX(s.HomeTeam_conformed, ' FC', 1))
+    OR dst.club = TRIM(SUBSTRING_INDEX(s.HomeTeam_conformed, ' AFC', 1))
+    OR dst.club = TRIM(s.HomeTeam)
+    OR dst.club LIKE CONCAT('%', TRIM(s.HomeTeam), '%')
+    OR dst.club LIKE CONCAT('%', TRIM(SUBSTRING_INDEX(s.HomeTeam_conformed, ' FC', 1)), '%')
+)
 
 ON DUPLICATE KEY UPDATE
     -- If a match already exists, only update the metrics, not the dimension keys.

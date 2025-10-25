@@ -313,6 +313,7 @@ CREATE TABLE IF NOT EXISTS dim_stadium (
 CREATE TABLE IF NOT EXISTS dim_referee (
     referee_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     referee_name VARCHAR(255),
+    referee_name_short VARCHAR(100),
     date_of_birth DATE,
     nationality VARCHAR(100),
     premier_league_debut DATE,
