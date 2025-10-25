@@ -35,6 +35,7 @@ DROP TABLE IF EXISTS staging_dates;
 DROP TABLE IF EXISTS stg_e0_match_raw;
 DROP TABLE IF EXISTS stg_team_raw;
 DROP TABLE IF EXISTS stg_referee_raw;
+DROP TABLE IF EXISTS stg_events_raw;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -97,6 +98,20 @@ CREATE TABLE IF NOT EXISTS ETL_Excel_Manifest (
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS ETL_Events_Manifest (
+    event_manifest_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    statsbomb_match_id VARCHAR(50) NOT NULL UNIQUE,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(255),
+    load_start_time DATETIME NOT NULL,
+    load_end_time DATETIME,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    rows_processed INT,
+    error_message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_statsbomb_match_id (statsbomb_match_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- STAGING
 CREATE TABLE IF NOT EXISTS stg_e0_match_raw (
@@ -212,6 +227,40 @@ CREATE TABLE IF NOT EXISTS stg_referee_raw (
     INDEX idx_status (status),
     INDEX idx_load_start_time (load_start_time),
     INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- StatsBomb Events Staging Table
+CREATE TABLE IF NOT EXISTS stg_events_raw (
+    event_id VARCHAR(50) NOT NULL PRIMARY KEY,
+    statsbomb_match_id INT NOT NULL,
+    statsbomb_period INT,
+    timestamp VARCHAR(30),
+    minute INT,
+    second INT,
+    type VARCHAR(100),
+    player_name VARCHAR(255),
+    player_id INT,
+    team_name VARCHAR(255),
+    team_id INT,
+    position VARCHAR(100),
+    possession_team_name VARCHAR(255),
+    play_pattern VARCHAR(100),
+    tactics_formation VARCHAR(50),
+    carry_end_location JSON,
+    pass_recipient_name VARCHAR(255),
+    pass_length DECIMAL(10,2),
+    shot_outcome VARCHAR(50),
+    shot_xg DECIMAL(10,6),
+    duel_outcome VARCHAR(50),
+    raw_data JSON,
+    status VARCHAR(20) DEFAULT 'LOADED',
+    load_start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_statsbomb_match_id (statsbomb_match_id),
+    INDEX idx_type (type),
+    INDEX idx_status (status),
+    INDEX idx_player_name (player_name),
+    INDEX idx_team_name (team_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- JSON STAGING TABLES

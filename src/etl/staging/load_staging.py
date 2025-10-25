@@ -4,6 +4,7 @@ from ..extract.csv_reader import read_csv
 from ..extract.api_client import fetch_and_load_team_data_for_years
 from ..extract.json_reader import JSONReader
 from ..extract.excel_reader import load_excel_data
+from ..extract.statsbomb_reader import fetch_and_load_statsbomb_events
 from importlib_metadata import files
 from ..db import get_engine
 from sqlalchemy import text
@@ -173,6 +174,9 @@ def load_all_staging():
     # Load API data (teams)
     results['api'] = write_staging_from_api()
     
+    # Load StatsBomb events
+    results['statsbomb'] = fetch_and_load_statsbomb_events()
+    
     # Load CSV data (matches)
     results['csv'] = write_staging_from_csv()
     
@@ -185,6 +189,7 @@ def load_all_staging():
     print("="*70)
     print(f"JSON (Players): {'SUCCESS' if results['json'] else 'FAILED'}")
     print(f"API (Teams): {'SUCCESS' if results['api'] else 'FAILED'}")
+    print(f"StatsBomb (Events): {'SUCCESS' if results['statsbomb'] else 'FAILED'}")
     print(f"CSV (Matches): {'SUCCESS' if results['csv'] else 'FAILED'}")
     print(f"Excel (Referees/Stadiums): {'SUCCESS' if results['excel'] else 'FAILED'}")
     print("="*70 + "\n")
