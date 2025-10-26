@@ -79,6 +79,34 @@ WITH stg_e0_match_raw_conformed AS (
             WHEN 'Aston Villa' THEN 'Aston Villa FC'
             ELSE TRIM(HomeTeam)
         END AS HomeTeam_conformed,
+        CASE TRIM(HomeTeam)
+            WHEN 'Man City' THEN 'Manchester City'
+            WHEN 'Man United' THEN 'Manchester United'
+            WHEN 'Nott''m Forest' THEN 'Nottingham Forest'
+            WHEN 'Wolves' THEN 'Wolves'
+            WHEN 'Bournemouth' THEN 'AFC Bournemouth'
+            WHEN 'Brighton' THEN 'Brighton & Hove Albion'
+            WHEN 'Newcastle' THEN 'Newcastle United'
+            WHEN 'Sheffield United' THEN 'Sheffield United'
+            WHEN 'West Ham' THEN 'West Ham United'
+            WHEN 'Tottenham' THEN 'Tottenham Hotspur'
+            WHEN 'Luton' THEN 'Luton Town'
+            WHEN 'Ipswich' THEN 'Ipswich Town'
+            WHEN 'Leicester' THEN 'Leicester City'
+            WHEN 'Southampton' THEN 'Southampton'
+            WHEN 'Sunderland' THEN 'Sunderland'
+            WHEN 'Leeds' THEN 'Leeds United'
+            WHEN 'Arsenal' THEN 'Arsenal'
+            WHEN 'Chelsea' THEN 'Chelsea'
+            WHEN 'Liverpool' THEN 'Liverpool'
+            WHEN 'Everton' THEN 'Everton'
+            WHEN 'Fulham' THEN 'Fulham'
+            WHEN 'Burnley' THEN 'Burnley'
+            WHEN 'Crystal Palace' THEN 'Crystal Palace'
+            WHEN 'Brentford' THEN 'Brentford'
+            WHEN 'Aston Villa' THEN 'Aston Villa'
+            ELSE TRIM(HomeTeam)
+        END AS HomeTeam_stadium,
         CASE TRIM(AwayTeam)
             WHEN 'Man City' THEN 'Manchester City FC'
             WHEN 'Man United' THEN 'Manchester United FC'
@@ -156,12 +184,7 @@ LEFT JOIN dim_referee dr ON (
     OR dr.referee_name_short = TRIM(s.Referee)
 )
 LEFT JOIN dim_stadium dst ON (
-    dst.club = s.HomeTeam_conformed
-    OR dst.club = TRIM(SUBSTRING_INDEX(s.HomeTeam_conformed, ' FC', 1))
-    OR dst.club = TRIM(SUBSTRING_INDEX(s.HomeTeam_conformed, ' AFC', 1))
-    OR dst.club = TRIM(s.HomeTeam)
-    OR dst.club LIKE CONCAT('%', TRIM(s.HomeTeam), '%')
-    OR dst.club LIKE CONCAT('%', TRIM(SUBSTRING_INDEX(s.HomeTeam_conformed, ' FC', 1)), '%')
+    dst.club = s.HomeTeam_stadium
 )
 
 ON DUPLICATE KEY UPDATE

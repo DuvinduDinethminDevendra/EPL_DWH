@@ -1,5 +1,6 @@
 -- Step 3 (Final): Load events into fact_match_events  
 -- Using sentinel values: player_id=6808 (UNKNOWN), team_id=-1 for unknowns
+-- Join through dim_match_mapping to fact_match, only insert if match_id exists
 INSERT INTO fact_match_events (
         match_id,
         event_type,
@@ -8,7 +9,7 @@ INSERT INTO fact_match_events (
         minute,
         extra_time
 )
-SELECT  dmm.csv_match_id,
+SELECT  fm.match_id,
         se.type,
         COALESCE(dp.player_id, 6808),
         COALESCE(dtm.dim_team_id, -1),
@@ -18,6 +19,7 @@ SELECT  dmm.csv_match_id,
              ELSE 0 END
 FROM    stg_events_raw se
 JOIN    dim_match_mapping dmm ON dmm.statsbomb_match_id = se.statsbomb_match_id
+INNER JOIN fact_match fm ON fm.match_id = dmm.csv_match_id  -- Only matches with valid mapping
 LEFT JOIN dim_team_mapping dtm ON dtm.statsbomb_team_id = se.team_id
 LEFT JOIN dim_player dp ON dp.player_name = se.player_name
 WHERE   se.status = 'LOADED'

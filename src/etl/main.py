@@ -13,6 +13,78 @@ import os
 from tqdm import tqdm
 from datetime import datetime
 
+def generate_player_stats_mock_data():
+    """Generate valid player stats mock data with real EPL team and player names"""
+    
+    PLAYERS_BY_TEAM = {
+        'Arsenal FC': ['Saka', 'Odegaard', 'Martinelli', 'Partey', 'White', 'Zinchenko', 'Jesus', 'Trossard'],
+        'Manchester City FC': ['De Bruyne', 'Haaland', 'Cancelo', 'Rodri', 'Dias', 'Grealish', 'Alvarez', 'Foden'],
+        'Liverpool FC': ['Salah', 'Van Dijk', 'Alisson', 'Henderson', 'Mane', 'Nunez', 'Trent', 'Fabinho'],
+        'Chelsea FC': ['Sterling', 'Pereira', 'James', 'Mount', 'Gallagher', 'Enzo', 'Mudryk', 'Madueke'],
+        'Manchester United FC': ['Bruno', 'Martial', 'Rashford', 'McTominay', 'Casemiro', 'Shaw', 'Varane', 'Dalot'],
+        'Newcastle United FC': ['Isak', 'Joelinton', 'Trippier', 'Guimaraes', 'Botman', 'Targett', 'Almiron', 'Tonali'],
+        'Brighton & Hove Albion FC': ['Mwepu', 'Caicedo', 'Tadic', 'Welbeck', 'Veltman', 'Webster', 'Lamptey', 'Jahanbakhsh'],
+        'Brentford FC': ['Mbeumo', 'Toney', 'Ajer', 'Dasilva', 'Hickey', 'Jensen', 'Simons', 'Sorensen'],
+        'Tottenham Hotspur FC': ['Son', 'Kane', 'Richarlison', 'Kulusevski', 'Porro', 'Romero', 'Van de Ven', 'Sarr'],
+        'Crystal Palace FC': ['Olise', 'Zaha', 'Guehi', 'Eze', 'Nketiah', 'Mitchell', 'Andersen', 'Ward'],
+        'Everton FC': ['Iwobi', 'Gordon', 'Doucoure', 'Harrison', 'Coady', 'Holgate', 'Coleman', 'Vinagre'],
+        'West Ham United FC': ['Rice', 'Ings', 'Soucek', 'Bowen', 'Antonio', 'Zouma', 'Coufal', 'Emerson'],
+        'Fulham FC': ['Pereira', 'Adarabioyo', 'Solomon', 'Palhinha', 'Willian', 'Ream', 'De Cordova', 'Tielemans'],
+        'Wolverhampton Wanderers FC': ['Neves', 'Cunha', 'Lemina', 'Ait Nouri', 'Coady', 'Kilman', 'Semedo', 'Sa'],
+        'Nottingham Forest FC': ['Awoniyi', 'Hudson-Odoi', 'Wood', 'Yates', 'Murillo', 'Niakhate', 'Williams', 'Laryea'],
+        'AFC Bournemouth': ['Solanke', 'Lerma', 'Mepham', 'Cook', 'Tavernier', 'Brady', 'Evanson', 'Senesi'],
+        'Aston Villa FC': ['Watkins', 'Buendia', 'McGinn', 'Coutinho', 'Martinez', 'Konsa', 'Cash', 'Ramsey'],
+        'Southampton FC': ['Salisu', 'Walker-Peters', 'Valery', 'Ward-Prowse', 'Aribo', 'Armstrong', 'Sulemana', 'Livramento'],
+        'Leicester City FC': ['Maddison', 'Vardy', 'Mendy', 'Ndidi', 'Castagne', 'Soyuncu', 'Pereira', 'Tielemans'],
+        'Ipswich Town FC': ['Delap', 'Cresswell', 'Johnson', 'Jackson', 'Lamy', 'Davis', 'Azaz', 'Woolfenden'],
+        'Leeds United FC': ['Sinisterra', 'Ayling', 'Piroe', 'Struijk', 'Rodon', 'Byram', 'Adams', 'Gnonto'],
+        'Burnley FC': ['Cornet', 'Amdouni', 'Vitinha', 'Brownhill', 'Barnes', 'Iling', 'Edmundson', 'Roberts'],
+        'Luton Town FC': ['Adebayo', 'Dewsbury-Hall', 'Clark', 'Lockyer', 'Ogbene', 'Osho', 'Kaminski', 'Kabore'],
+        'Sheffield United FC': ['Heck', 'Gibbs-White', 'Anel', 'Lowe', 'Baldock', 'Stevens', 'Norwood', 'Robinson'],
+        'Sunderland AFC': ['Maguire', 'Stewart', 'Embalo', 'Ba', 'Cirkin', 'Heeley', 'ONien', 'Alves'],
+    }
+    
+    engine = get_engine()
+    
+    try:
+        with engine.connect() as conn:
+            # Clear existing data
+            conn.execute(text('DELETE FROM stg_player_stats_fbref'))
+            
+            row_count = 0
+            for team_name, player_list in PLAYERS_BY_TEAM.items():
+                for season_year in range(2017, 2025):
+                    season = f'{season_year}-{season_year+1}'
+                    for idx, player_name in enumerate(player_list):
+                        conn.execute(text('''
+                            INSERT INTO stg_player_stats_fbref 
+                            (player_name, team_name, minutes_played, goals, assists, xg, xa, 
+                             yellow_cards, red_cards, shots, shots_on_target, season_label)
+                            VALUES (:pname, :tname, :mins, :goals, :assists, :xg, :xa, :yc, :rc, :shots, :sot, :season)
+                        '''), {
+                            'pname': player_name,
+                            'tname': team_name,
+                            'mins': 2000 + (idx * 150),
+                            'goals': (idx + 1) % 20,
+                            'assists': (idx + 1) % 10,
+                            'xg': float(2 + (idx % 15)),
+                            'xa': float((idx % 8)),
+                            'yc': idx % 3,
+                            'rc': 0,
+                            'shots': 3 + (idx % 10),
+                            'sot': 1 + (idx % 5),
+                            'season': season
+                        })
+                        row_count += 1
+            
+            conn.commit()
+            print(f"[SUCCESS] Generated {row_count} player stats records with valid team names")
+            return True
+            
+    except Exception as e:
+        print(f"[ERROR] Failed to generate player stats mock data: {str(e)}")
+        return False
+
 def run_demo(csv_path):
     import pandas as pd
     df = csv_reader.read_csv(csv_path)
@@ -42,6 +114,12 @@ def load_fact_tables():
     print("LOADING FACT TABLES FROM STAGING DATA")
     print("="*80)
     
+    # Step 1: Generate valid player stats mock data (must happen before loading facts)
+    print("\n[STEP -1] Generating player stats mock data with valid team names...")
+    if not generate_player_stats_mock_data():
+        print("[ERROR] Failed to generate player stats mock data")
+        return False
+    
     # First populate mapping tables (required before loading fact_match_events)
     print("\n[STEP 0] Populating mapping tables...")
     if not populate_mapping_tables():
@@ -54,6 +132,7 @@ def load_fact_tables():
     # Scripts to run in order (includes load_fact_match as step 1!)
     scripts = [
         ("load_fact_match.sql", "Load fact_match from CSV (830 matches)"),
+        ("load_fact_player_stats.sql", "Load fact_player_stats from staging (1600 records)"),
         ("load_fact_match_events_step1.sql", "Step 1: Create temporary aggregation table"),
         ("load_fact_match_events_step2.sql", "Step 2: Verify match mappings"),
         ("load_fact_match_events_step3_final.sql", "Step 3: Load 1.36M events into fact_match_events"),
@@ -89,10 +168,10 @@ def load_fact_tables():
             step_start = datetime.now()
             
             if not script_path.exists():
-                print(f"\n❌ [WARNING] Script not found: {script_path}")
+                print(f"\n[ERROR] Script not found: {script_path}")
                 continue
             
-            print(f"\n  ▶ [{idx}/{len(scripts)}] {description}")
+            print(f"\n  [{idx}/{len(scripts)}] {description}")
             
             # Read SQL file
             with open(script_path, 'r') as f:
@@ -114,11 +193,11 @@ def load_fact_tables():
                                 rows = result.fetchall()
                                 if rows:
                                     for row in rows[:5]:  # Limit output
-                                        print(f"    → {row}")
+                                        print(f"    -> {row}")
                                     if len(rows) > 5:
                                         print(f"    ... and {len(rows)-5} more rows")
                         except Exception as e:
-                            print(f"\n  ❌ [ERROR] {str(e)}")
+                            print(f"\n  [ERROR] {str(e)}")
                             conn.rollback()
                             # Log failure
                             try:
@@ -152,14 +231,14 @@ def load_fact_tables():
                             "stat": "COMPLETED",
                             "start": step_start,
                             "end": step_end,
-                            "msg": f"✓ {description} ({step_duration:.2f}s)"
+                            "msg": f"[OK] {description} ({step_duration:.2f}s)"
                         })
                         log_conn.commit()
                 except Exception as e:
                     print(f"[WARNING] Could not log step completion: {str(e)}")
                     
             except Exception as e:
-                print(f"\n  ❌ [ERROR] Step failed: {str(e)}")
+                print(f"\n  [ERROR] Step failed: {str(e)}")
                 return False
         
         # Log completion
@@ -182,7 +261,7 @@ def load_fact_tables():
             print(f"[WARNING] Could not log completion: {str(e)}")
         
         print("\n" + "="*80)
-        print(f"✅ FACT TABLE LOADING COMPLETED SUCCESSFULLY ({duration:.2f}s)")
+        print(f"[SUCCESS] FACT TABLE LOADING COMPLETED SUCCESSFULLY ({duration:.2f}s)")
         print("="*80)
         return True
         
@@ -387,7 +466,7 @@ def populate_mapping_tables():
                         rows = result.fetchall()
                         if rows:
                             for row in rows:
-                                print(f"  ✓ {row}")
+                                print(f"  [OK] {row}")
                     
                     # Log successful statement
                     step_end = datetime.now()
@@ -403,14 +482,14 @@ def populate_mapping_tables():
                                 "stat": "COMPLETED",
                                 "start": step_start,
                                 "end": step_end,
-                                "msg": f"✓ Statement {idx}/{len(statements)} ({step_duration:.2f}s)"
+                                "msg": f"[OK] Statement {idx}/{len(statements)} ({step_duration:.2f}s)"
                             })
                             log_conn.commit()
                     except Exception as e:
                         print(f"[WARNING] Could not log statement: {str(e)}")
                         
                 except Exception as e:
-                    print(f"\n  ⚠️  Warning: {str(e)[:100]}")
+                    print(f"\n  [WARNING] Warning: {str(e)[:100]}")
                     # Log warning
                     try:
                         with engine.connect() as log_conn:
@@ -449,11 +528,11 @@ def populate_mapping_tables():
         except Exception as e:
             print(f"[WARNING] Could not log completion: {str(e)}")
         
-        print("\n✅ Mapping tables populated successfully!")
+        print("\n[SUCCESS] Mapping tables populated successfully!")
         return True
         
     except Exception as e:
-        print(f"❌ Mapping table population failed: {str(e)}")
+        print(f"[ERROR] Mapping table population failed: {str(e)}")
         # Log failure
         try:
             with engine.connect() as conn:
@@ -473,7 +552,7 @@ def populate_mapping_tables():
         return False
 
 def run_complete_player_pipeline():
-    """Master orchestration: Schema → Full ETL → Generate Mock FBRef → Stage → Load Player Stats → Populate Mappings"""
+    """Master orchestration: Schema -> Full ETL -> Generate Mock FBRef -> Stage -> Load Player Stats -> Populate Mappings"""
     print("\n" + "="*80)
     print("COMPLETE PLAYER STATS PIPELINE")
     print("="*80)
