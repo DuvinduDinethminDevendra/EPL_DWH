@@ -15,6 +15,9 @@ DROP TABLE IF EXISTS fact_player_stats;
 DROP TABLE IF EXISTS fact_match_events;
 DROP TABLE IF EXISTS fact_match;
 
+DROP TABLE IF EXISTS dim_team_mapping;
+DROP TABLE IF EXISTS dim_match_mapping;
+
 DROP TABLE IF EXISTS dim_referee;
 DROP TABLE IF EXISTS dim_stadium;
 DROP TABLE IF EXISTS dim_player;
@@ -379,6 +382,23 @@ CREATE TABLE IF NOT EXISTS dim_season (
     UNIQUE KEY uk_season_name (season_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- MAPPING TABLES (Bridge between StatsBomb and CSV data)
+CREATE TABLE IF NOT EXISTS dim_team_mapping (
+    statsbomb_team_id INT PRIMARY KEY,
+    dim_team_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_dim_team (dim_team_id),
+    FOREIGN KEY (dim_team_id) REFERENCES dim_team(team_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS dim_match_mapping (
+    statsbomb_match_id INT PRIMARY KEY,
+    csv_match_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_csv_match (csv_match_id),
+    FOREIGN KEY (csv_match_id) REFERENCES fact_match(match_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- FACTS
 CREATE TABLE IF NOT EXISTS fact_match (
     match_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -461,6 +481,7 @@ CREATE TABLE IF NOT EXISTS fact_player_stats (
 -- Sentinel rows (unknown) for FK safety
 INSERT IGNORE dim_date      (date_id,cal_date,year,month,day,week) VALUES (-1,'1900-01-01',1900,1,1,1);
 INSERT IGNORE dim_team      (team_id,team_name) VALUES (-1,'Unknown Team');
+INSERT IGNORE dim_player    (player_id,player_name,birth_date,nationality,position) VALUES (6808,'UNKNOWN',NULL,'UNKNOWN','UNKNOWN');
 INSERT IGNORE dim_referee   (referee_id,referee_name) VALUES (-1,'Unknown Referee');
 INSERT IGNORE dim_stadium   (stadium_id,stadium_name) VALUES (-1,'Unknown Stadium');
 INSERT IGNORE dim_season    (season_id,season_name) VALUES (-1,'Unknown Season');
@@ -480,6 +501,9 @@ WHERE d BETWEEN '1992-07-01' AND '2040-06-30';
 
 -- Initial seasons
 INSERT IGNORE dim_season (season_name,start_date,end_date) VALUES
+('2017/2018','2017-08-11','2018-05-13'),
+('2018/2019','2018-08-10','2019-05-12'),
+('2019/2020','2019-08-09','2020-07-26'),
 ('2020/2021','2020-09-12','2021-05-23'),
 ('2021/2022','2021-08-13','2022-05-22'),
 ('2022/2023','2022-08-05','2023-05-28'),
@@ -497,4 +521,18 @@ PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- Add chk_ag
 SELECT IF(@c2=0, 'ALTER TABLE fact_match ADD CONSTRAINT chk_ag CHECK (away_goals BETWEEN 0 AND 20);', 'SELECT "chk_ag exists";') INTO @s;
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ================================================================================================
+--  Populate Mapping Tables (when data is available)
+-- ================================================================================================
+-- Note: These mappings will be populated during ETL execution after staging tables are loaded
+-- This section is intentionally left as a template for reference:
+--
+-- 1. dim_team_mapping: Maps StatsBomb team IDs to dim_team IDs
+--    - Populated after stg_team_raw and dim_team are loaded
+--
+-- 2. dim_match_mapping: Maps StatsBomb match IDs to CSV match IDs (fact_match)
+--    - Populated after stg_events_raw and fact_match are loaded
+-- ================================================================================================
+
 -- End of canonical schema

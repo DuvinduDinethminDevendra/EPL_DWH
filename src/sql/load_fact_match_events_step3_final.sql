@@ -21,9 +21,7 @@ JOIN    dim_match_mapping dmm ON dmm.statsbomb_match_id = se.statsbomb_match_id
 LEFT JOIN dim_team_mapping dtm ON dtm.statsbomb_team_id = se.team_id
 LEFT JOIN dim_player dp ON dp.player_name = se.player_name
 WHERE   se.status = 'LOADED'
-  AND   se.minute BETWEEN 0 AND 120
-  AND   se.type IN ('Goal','Shot','Yellow Card','Red Card','Foul','Pass','Duel',
-                    'Tackle','Interception','Clearance','Carry','Mistake');
+  AND   se.minute BETWEEN 0 AND 120;
 
 -- Verify results
 SELECT COUNT(*) AS total_events,
