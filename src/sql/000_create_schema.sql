@@ -391,15 +391,7 @@ CREATE TABLE IF NOT EXISTS dim_team_mapping (
     FOREIGN KEY (dim_team_id) REFERENCES dim_team(team_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS dim_match_mapping (
-    statsbomb_match_id INT PRIMARY KEY,
-    csv_match_id INT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_csv_match (csv_match_id),
-    FOREIGN KEY (csv_match_id) REFERENCES fact_match(match_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- FACTS
+-- FACTS (created before dim_match_mapping due to FK dependency)
 CREATE TABLE IF NOT EXISTS fact_match (
     match_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     match_source_key VARCHAR(255) UNIQUE,
@@ -476,6 +468,15 @@ CREATE TABLE IF NOT EXISTS fact_player_stats (
     FOREIGN KEY (team_id) REFERENCES dim_team(team_id),
     INDEX (match_id),
     INDEX (player_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- MAPPING TABLE (created AFTER fact_match due to FK dependency)
+CREATE TABLE IF NOT EXISTS dim_match_mapping (
+    statsbomb_match_id INT PRIMARY KEY,
+    csv_match_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_csv_match (csv_match_id),
+    FOREIGN KEY (csv_match_id) REFERENCES fact_match(match_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Sentinel rows (unknown) for FK safety

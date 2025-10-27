@@ -899,7 +899,24 @@ ORDER BY TABLE_NAME;
   - Fact loading strategy
   - Event aggregation and mapping rebuild
 
+- **[MAPPING_TABLES_GUIDE.md](MAPPING_TABLES_GUIDE.md)** ⭐ **NEW**
+  - How mapping tables bridge StatsBomb & CSV data
+  - dim_team_mapping (StatsBomb team IDs ↔ EPL team IDs)
+  - dim_match_mapping (StatsBomb match IDs ↔ CSV match IDs)
+  - Real-world query examples
+  - Troubleshooting unmapped records
+
+- **[STAGING_TABLE_CLEANUP.md](STAGING_TABLE_CLEANUP.md)** ⭐ **NEW**
+  - Automatic staging table truncation after ETL
+  - Why clean up staging tables (DWH best practices)
+  - Architecture decision: Truncate + Manifest tables for audit trail
+  - Staging cleanup in each ETL command
+  - Manual verification steps
+
 ### Additional Resources
+- **`PROJECT_STATUS.md`** — Project status & data inventory (Oct 2025)
+- **`MAINTENANCE.md`** — Operations & troubleshooting guide
+- **`DOCUMENTATION_GUIDE.md`** — Navigation guide for 10+ user roles
 - **`CURRENT_STATUS.md`** — Live pipeline status, progress metrics
 - **`EXTRACTION_IMPROVEMENTS.md`** — Technical details on EPL filtering
 - **`DATABASE_SCHEMA_STRUCTURE.md`** — Full schema documentation

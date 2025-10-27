@@ -102,6 +102,13 @@ def run_full_etl_pipeline():
     try:
         # Run complete pipeline (handles staging, cleaning, and dimension loads)
         run_complete_etl_pipeline()
+        
+        # Clean up staging tables after successful ETL
+        print("\n📋 NOW CLEANING UP STAGING TABLES (per DWH best practices)...")
+        if not truncate_staging_tables("full_etl_pipeline"):
+            print("⚠️  WARNING: ETL completed but staging cleanup had issues")
+            return False
+        
         return True
         
     except Exception as e:
@@ -263,6 +270,13 @@ def load_fact_tables():
         print("\n" + "="*80)
         print(f"[SUCCESS] FACT TABLE LOADING COMPLETED SUCCESSFULLY ({duration:.2f}s)")
         print("="*80)
+        
+        # Truncate staging tables after successful fact load
+        print("\n📋 NOW CLEANING UP STAGING TABLES (per DWH best practices)...")
+        if not truncate_staging_tables("load_fact_tables"):
+            print("⚠️  WARNING: Fact tables loaded but staging cleanup had issues")
+            return False
+        
         return True
         
     except Exception as e:
@@ -392,6 +406,13 @@ def load_player_stats():
         print("\n" + "="*80)
         print(f"✅ PLAYER STATS LOADING COMPLETED SUCCESSFULLY ({duration:.2f}s)")
         print("="*80)
+        
+        # Clean up staging tables after successful player stats load
+        print("\n📋 NOW CLEANING UP STAGING TABLES (per DWH best practices)...")
+        if not truncate_staging_tables("load_player_stats"):
+            print("⚠️  WARNING: Player stats loaded but staging cleanup had issues")
+            return False
+        
         return True
         
     except Exception as e:
@@ -408,6 +429,144 @@ def load_player_stats():
                     "stat": "FAILED",
                     "end": datetime.now(),
                     "msg": f"Player stats loading failed: {str(e)}"
+                })
+                conn.commit()
+        except:
+            pass
+        return False
+
+def truncate_staging_tables(log_job_name="etl_pipeline"):
+    """Truncate all staging tables after successful ETL completion.
+    
+    Staging tables are temporary containers for data transformation.
+    After successful load to fact/dimension tables, they should be cleaned.
+    Audit trail is preserved in etl_log, etl_file_manifest, etl_json_manifest.
+    
+    Args:
+        log_job_name: Name for ETL_log entry (default: "etl_pipeline")
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    print("\n" + "="*80)
+    print("CLEANING UP STAGING TABLES")
+    print("="*80)
+    
+    staging_tables = [
+        'stg_e0_match_raw',
+        'stg_player_raw',
+        'stg_player_stats_fbref',
+        'stg_team_raw'
+    ]
+    
+    engine = get_engine()
+    start_time = datetime.now()
+    
+    # Log start
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                INSERT INTO etl_log (job_name, phase_step, status, start_time, message)
+                VALUES (:job, :phase, :stat, :start, :msg)
+            """), {
+                "job": log_job_name,
+                "phase": "staging_cleanup",
+                "stat": "STARTED",
+                "start": start_time,
+                "msg": f"Starting truncation of {len(staging_tables)} staging tables"
+            })
+            conn.commit()
+    except Exception as e:
+        print(f"[WARNING] Could not log to ETL_Log: {str(e)}")
+    
+    try:
+        with engine.connect() as conn:
+            total_rows_before = 0
+            
+            # Get row counts before truncation
+            print("\n📊 Row counts BEFORE cleanup:")
+            for table in staging_tables:
+                result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                count = result.fetchone()[0]
+                total_rows_before += count
+                print(f"   {table:.<40} {count:>10,} rows")
+            
+            # Truncate all staging tables
+            print(f"\n🧹 Truncating {len(staging_tables)} staging tables...")
+            for table in staging_tables:
+                try:
+                    conn.execute(text(f"TRUNCATE TABLE {table}"))
+                    conn.commit()
+                    print(f"   ✅ {table}")
+                except Exception as e:
+                    print(f"   ❌ {table}: {str(e)}")
+                    # Log failure but continue with other tables
+                    try:
+                        with engine.connect() as log_conn:
+                            log_conn.execute(text("""
+                                INSERT INTO etl_log (job_name, phase_step, status, end_time, message)
+                                VALUES (:job, :phase, :stat, :end, :msg)
+                            """), {
+                                "job": log_job_name,
+                                "phase": f"truncate_{table}",
+                                "stat": "FAILED",
+                                "end": datetime.now(),
+                                "msg": f"Failed to truncate {table}: {str(e)}"
+                            })
+                            log_conn.commit()
+                    except:
+                        pass
+                    return False
+            
+            # Verify truncation
+            print(f"\n✅ Row counts AFTER cleanup:")
+            total_rows_after = 0
+            for table in staging_tables:
+                result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                count = result.fetchone()[0]
+                total_rows_after += count
+                print(f"   {table:.<40} {count:>10,} rows")
+        
+        # Log successful completion
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    INSERT INTO etl_log (job_name, phase_step, status, start_time, end_time, message)
+                    VALUES (:job, :phase, :stat, :start, :end, :msg)
+                """), {
+                    "job": log_job_name,
+                    "phase": "staging_cleanup",
+                    "stat": "COMPLETED",
+                    "start": start_time,
+                    "end": end_time,
+                    "msg": f"Cleaned staging: {total_rows_before:,} rows removed in {duration:.2f}s. Audit trail preserved in etl_log."
+                })
+                conn.commit()
+        except Exception as e:
+            print(f"[WARNING] Could not log cleanup completion: {str(e)}")
+        
+        print("\n" + "="*80)
+        print(f"[SUCCESS] STAGING TABLES CLEANED ({total_rows_before:,} rows removed)")
+        print(f"          Audit trail preserved in: etl_log, etl_file_manifest, etl_json_manifest")
+        print("="*80)
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ [ERROR] Staging table cleanup failed: {str(e)}")
+        # Log failure
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    INSERT INTO etl_log (job_name, phase_step, status, end_time, message)
+                    VALUES (:job, :phase, :stat, :end, :msg)
+                """), {
+                    "job": log_job_name,
+                    "phase": "staging_cleanup",
+                    "stat": "FAILED",
+                    "end": datetime.now(),
+                    "msg": f"Staging cleanup failed: {str(e)}"
                 })
                 conn.commit()
         except:
@@ -717,6 +876,13 @@ def run_complete_player_pipeline():
     if not populate_mapping_tables():
         print("⚠️  Mapping table population had warnings (non-critical)")
     print("✅ Mapping tables populated")
+    
+    # Step 7: Clean up staging tables
+    print("\n[STEP 7/7] Cleaning up staging tables (per DWH best practices)...")
+    if not truncate_staging_tables("complete_player_pipeline"):
+        print("⚠️  WARNING: Pipeline complete but staging cleanup had issues")
+        return False
+    print("✅ Staging tables cleaned")
     
     print("\n" + "="*80)
     print("✅ COMPLETE PLAYER STATS PIPELINE FINISHED SUCCESSFULLY!")
