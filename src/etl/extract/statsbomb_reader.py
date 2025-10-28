@@ -341,6 +341,29 @@ def load_events_from_file(file_path: Path, engine) -> int:
                 logger.info(f"  ✓ Match {match_id} already processed, skipping")
                 return 0
         
+        # ===== NEW: Read match date from matches.json metadata =====
+        statsbomb_root = _get_statsbomb_path()
+        match_date_str = None
+        
+        # Try to find and read the matches metadata file
+        # StatsBomb organizes by competition: 27 = EPL
+        matches_file = statsbomb_root / "data" / "matches" / "27" / "2023.json"
+        
+        try:
+            if matches_file.exists():
+                with open(matches_file, 'r', encoding='utf-8') as f:
+                    matches_data = json.load(f)
+                    # Build a lookup: match_id → match_date (YYYYMMDD)
+                    for match in matches_data:
+                        if match.get("match_id") == match_id:
+                            # Convert "2023-08-11" → "20230811"
+                            date_str = match.get("match_date", "")
+                            match_date_str = date_str.replace("-", "") if date_str else None
+                            break
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not read match date from matches.json: {e}")
+        # ===== END: Match date lookup =====
+        
         # Read and parse JSON
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -356,13 +379,16 @@ def load_events_from_file(file_path: Path, engine) -> int:
             logger.warning(f"  ⚠ Match {match_id}: Expected list of events, got {type(match_events)}")
             return 0
         
-        logger.info(f"  Processing match {match_id}: {len(match_events)} events")
+        logger.info(f"  Processing match {match_id}: {len(match_events)} events (date: {match_date_str})")
         
-        # Parse all events
+        # Parse all events and inject match_date
         parsed_events = []
         for event in match_events:
             parsed = parse_statsbomb_event(event, match_id)
             if parsed:
+                # ===== NEW: Inject match_date into event =====
+                parsed["match_date"] = int(match_date_str) if match_date_str else None
+                # ===== END: Inject match_date =====
                 parsed_events.append(parsed)
         
         if not parsed_events:

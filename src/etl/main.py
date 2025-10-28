@@ -94,25 +94,74 @@ def run_demo(csv_path):
     print(df)       
 
 def run_full_etl_pipeline():
-    """Run the complete ETL pipeline: Staging -> Dimensions -> Facts"""
+    """Run the complete ETL pipeline: Extract -> Transform -> Load to Staging + Dimensions
+    
+    IMPORTANT: This does NOT truncate staging tables. Keep staging data for fact table loading!
+    """
     print("\n" + "="*80)
     print("RUNNING COMPLETE EPL DWH ETL PIPELINE")
     print("="*80)
     
     try:
         # Run complete pipeline (handles staging, cleaning, and dimension loads)
+        # This populates staging tables with CSV and JSON data
         run_complete_etl_pipeline()
         
-        # Clean up staging tables after successful ETL
-        print("\n📋 NOW CLEANING UP STAGING TABLES (per DWH best practices)...")
-        if not truncate_staging_tables("full_etl_pipeline"):
-            print("⚠️  WARNING: ETL completed but staging cleanup had issues")
-            return False
+        # ✅ KEEP STAGING DATA - Do NOT truncate yet
+        # Staging tables needed for fact table loading in next step
+        print("\n✅ [OK] Staging tables preserved for fact table loading")
+        print("    (Run --load-fact-tables next, or use --full-etl-and-facts for complete workflow)")
         
         return True
         
     except Exception as e:
         print(f"\n[ERROR] ETL pipeline failed: {str(e)}")
+        return False
+
+
+def run_full_etl_and_facts():
+    """Complete integrated workflow: ETL + Load Facts + Cleanup
+    
+    This is the recommended command for full DWH population:
+    1. Extract CSV and JSON data into staging tables
+    2. Load dimensions (dim_player, dim_team, dim_referee, dim_stadium, dim_date)
+    3. Populate mapping tables (dim_team_mapping, dim_match_mapping)
+    4. Load fact tables (fact_match, fact_match_events, fact_player_stats)
+    5. THEN truncate staging tables (cleanup after successful load)
+    """
+    print("\n" + "="*80)
+    print("RUNNING INTEGRATED ETL + FACT LOADING PIPELINE")
+    print("="*80)
+    
+    try:
+        # Step 1: Run full ETL to populate staging and dimensions
+        print("\n[STEP 1/3] Extracting data and loading dimensions...")
+        if not run_full_etl_pipeline():
+            print("[ERROR] ETL pipeline failed")
+            return False
+        print("✅ Step 1 complete: Data extracted, staging populated, dimensions loaded")
+        
+        # Step 2: Load fact tables from populated staging
+        print("\n[STEP 2/3] Loading fact tables from staging data...")
+        if not load_fact_tables():
+            print("[ERROR] Fact table loading failed")
+            return False
+        print("✅ Step 2 complete: All fact tables loaded successfully")
+        
+        # Step 3: Clean up staging tables ONLY after successful fact load
+        print("\n[STEP 3/3] Cleaning up staging tables (per DWH best practices)...")
+        if not truncate_staging_tables("full_etl_and_facts_pipeline"):
+            print("⚠️  WARNING: Pipeline completed but staging cleanup had issues")
+            return False
+        print("✅ Step 3 complete: Staging tables cleaned")
+        
+        print("\n" + "="*80)
+        print("✅ [SUCCESS] COMPLETE ETL + FACTS PIPELINE FINISHED!")
+        print("="*80 + "\n")
+        return True
+        
+    except Exception as e:
+        print(f"\n[ERROR] Integrated pipeline failed: {str(e)}")
         return False
 
 def load_fact_tables():
@@ -894,7 +943,8 @@ def main():
     parser.add_argument("csv", nargs="?", help="Path to a sample CSV file (for demo mode)")
     parser.add_argument("--csv", "-c", dest="csv_flag", help="Path to a sample CSV file (alternative flag)")
     parser.add_argument("--test-db", action="store_true", help="Run a quick DB connectivity test")
-    parser.add_argument("--full-etl", action="store_true", help="Run the complete ETL pipeline (staging + dimensions)")
+    parser.add_argument("--full-etl", action="store_true", help="Run extraction + dimensions ONLY (keeps staging data for next step)")
+    parser.add_argument("--full-etl-and-facts", action="store_true", help="RECOMMENDED: Complete workflow - ETL + Load Facts + Cleanup (all-in-one)")
     parser.add_argument("--staging", action="store_true", help="Run only the staging load")
     parser.add_argument("--warehouse", action="store_true", help="Run only the warehouse load (dimensions)")
     parser.add_argument("--load-fact-tables", action="store_true", help="Load fact tables from staging data (run after --full-etl)")
@@ -908,6 +958,8 @@ def main():
         run_db_test()
     elif args.complete_player_pipeline:
         run_complete_player_pipeline()
+    elif args.full_etl_and_facts:
+        run_full_etl_and_facts()
     elif args.full_etl:
         run_full_etl_pipeline()
     elif args.load_fact_tables:

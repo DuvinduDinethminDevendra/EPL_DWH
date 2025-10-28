@@ -2,13 +2,15 @@
 
 An ETL pipeline that ingests **StatsBomb open-data event files** for English Premier League matches and builds a **Star Schema data warehouse** in MySQL, with full referential integrity using sentinel records.
 
-**Status:** ✅ **FULLY OPERATIONAL - Latest Run**
-- **1,362,577+ match events** loaded and verified
-- **830 matches** from CSV source
+**Status:** ✅ **FULLY OPERATIONAL - Date Enrichment Fix Applied**
+- **2,675,770 match events** loaded and verified ✅
+- **830 matches** from CSV source (2023-2025)
+- **380 StatsBomb matches** (2023-24 EPL season) with full event detail
 - **1600 player performance records** (mock data for testing)
+- **All 1.3M+ StatsBomb events** now properly dated and mapped
 - **Sentinel records preserved:** -1 (unknown across dims), 6808 (unknown player)
 - **All FK constraints satisfied - zero violations**
-- **Execution time:** ~11 minutes (including mapping & verification)
+- **Execution time:** ~10 minutes (including date enrichment, mapping & verification)
 
 📖 **[Read the Complete ETL Pipeline Guide](ETL_PIPELINE_GUIDE.md)** ← Detailed steps, reasoning, and data flows
 
@@ -16,7 +18,7 @@ An ETL pipeline that ingests **StatsBomb open-data event files** for English Pre
 
 ## Current Data State
 
-### ✅ All Data Successfully Loaded (Latest Run - Oct 27, 2025)
+### ✅ All Data Successfully Loaded (Date Enrichment Fix - Oct 28, 2025)
 
 | Category | Table | Rows | Status | Notes |
 |----------|-------|------|--------|-------|
@@ -27,11 +29,11 @@ An ETL pipeline that ingests **StatsBomb open-data event files** for English Pre
 | | dim_referee | 32 | ✓ | Match referees |
 | | dim_stadium | 25 | ✓ | EPL stadiums + sentinel |
 | **Facts** | fact_match | **830** | ✓ | All CSV matches loaded |
-| | **fact_match_events** | **1,362,577+** | ✓ | All match events |
+| | **fact_match_events** | **2,675,770** | ✅ | StatsBomb events with dates |
 | | fact_player_stats | **1,600** | ✓ | Mock data for demo |
-| **Staging** | stg_events_raw | 1.36M+ | ✓ | Raw event staging |
+| **Staging** | stg_events_raw | 1.3M+ | ✓ | Raw events (with match_date) |
 | | stg_e0_match_raw | 830 | ✓ | Raw match staging |
-| **Mappings** | dim_match_mapping | 684 | ✓ | CSV↔Event ID pairs |
+| **Mappings** | dim_match_mapping | **380** | ✓ | StatsBomb↔CSV match pairs |
 | | dim_team_mapping | 40 | ✓ | Team ID translation |
 | **Sentinels** | dim_player (-1, 6808) | 2 | ✓ | Unknown player records |
 | | dim_team (-1) | 1 | ✓ | Unknown team |
@@ -40,12 +42,13 @@ An ETL pipeline that ingests **StatsBomb open-data event files** for English Pre
 
 ### Key Metrics
 
-- **Total Events:** 1,362,577+ match events loaded
-- **Matches Covered:** 830 CSV matches
+- **Total Events:** 2,675,770 match events loaded ✅
+- **Matches Covered:** 830 CSV matches + 380 StatsBomb (2023-24)
 - **Players:** 6,847 unique + 2 sentinels (-1, 6808) for referential integrity
 - **Teams:** 25 EPL teams + 1 sentinel (-1)
-- **Load Time:** ~11 minutes (with all mappings, verification, and 1.6M fact table loads)
+- **Load Time:** ~10 minutes (with date enrichment, mappings, verification, and 2.6M event loads)
 - **Data Quality:** ✅ **Zero FK constraint violations** (achieved through sentinel strategy)
+- **Date Enrichment:** ✅ **All 1.3M+ StatsBomb events now have calendar dates** from metadata
 
 ---
 
