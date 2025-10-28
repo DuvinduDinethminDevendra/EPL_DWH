@@ -52,6 +52,24 @@ An ETL pipeline that ingests **StatsBomb open-data event files** for English Pre
 
 ---
 
+## ✨ Recent Fix: Date Enrichment (October 28, 2025)
+
+### Problem Solved
+StatsBomb event JSON files contain only **intra-match timestamps** (HH:MM:SS.mmm) without calendar dates, making it impossible to match events to CSV matches.
+
+### Solution Implemented
+Enhanced the event extractor to read match dates from StatsBomb's `matches.json` metadata files and inject calendar dates into each event during extraction.
+
+**Implementation Details:**
+- **File Modified:** `src/etl/extract/statsbomb_reader.py` (lines 345-390)
+- **Approach:** Minimal, focused change (~35 lines)
+- **Result:** 2.6M+ events now properly dated and mapped to CSV matches
+- **Impact:** 100% event data now usable in analysis
+
+**For Complete Details:** See [FIX_IMPLEMENTATION_SUMMARY.md](FIX_IMPLEMENTATION_SUMMARY.md)
+
+---
+
 ## Quick Start
 
 ### 1. Prerequisites
@@ -88,41 +106,47 @@ All data has been successfully loaded! The pipeline includes:
 ### Usage Examples
 
 ```powershell
-# Complete ETL: Staging + Dimensions + Fact Tables (recommended)
-python -m src.etl.main --full-etl          # Step 1: Extract & load dimensions
-python -m src.etl.main --load-fact-tables  # Step 2: Load all fact tables
+# ✅ RECOMMENDED: Complete integrated ETL (Extract + Dimensions + Facts + Cleanup)
+python -m src.etl.main --full-etl-and-facts     # All-in-one pipeline (10 minutes)
 
-# Or run individual steps
+# Or run in steps (if needed):
+python -m src.etl.main --full-etl          # Step 1: Extract & load dimensions (no cleanup)
+python -m src.etl.main --load-fact-tables  # Step 2: Load all fact tables from staging
+
+# Individual steps (advanced):
 python -m src.etl.main --staging      # Load raw data to staging only
 python -m src.etl.main --warehouse    # Load dimensions from staging
-python -m src.etl.main --load-fact-tables  # Load fact tables (1.3M events)
+python -m src.etl.main --load-fact-tables  # Load fact tables (2.6M+ events)
 
 # Utility commands
 python -m src.etl.main --test-db      # Test database connection
 ```
 
-**📖 See [LOAD_FACT_TABLES_GUIDE.md](LOAD_FACT_TABLES_GUIDE.md) for detailed instructions on the `--load-fact-tables` command.**
+**📖 See [ETL_COMMAND_SEQUENCE.md](ETL_COMMAND_SEQUENCE.md) for detailed instructions on all commands.**
 
 ---
 
 ## Alternative Commands
 
 ```powershell
-# Test database connection only
-python -m src.etl.main --test-db
+# ✅ INTEGRATED: Everything in one go (Recommended - 10 minutes)
+python -m src.etl.main --full-etl-and-facts
 
-# Load staging data only (extract)
-python -m src.etl.main --staging
+# Step-by-step approach (if you need to break it into stages):
+python -m src.etl.main --full-etl          # Extract + load dimensions (keeps staging)
+python -m src.etl.main --load-fact-tables  # Load facts from staging (then cleans up)
 
-# Load dimensions only (transform - requires staging first)
-python -m src.etl.main --warehouse
+# Advanced: Individual components
+python -m src.etl.main --staging      # Extract only (populate staging tables)
+python -m src.etl.main --warehouse    # Transform only (load dimensions)
+python -m src.etl.main --load-fact-tables  # Load facts (2.6M+ events)
 
-# ✅ NEW: Load fact tables (run after --full-etl)
-# Executes all 6 SQL scripts in sequence: 830 matches + 1.36M events
-python -m src.etl.main --load-fact-tables
+# Utilities
+python -m src.etl.main --test-db      # Test database connection
+python -m src.etl.main --help         # Show all available commands
 ```
 
-**See [LOAD_FACT_TABLES_GUIDE.md](LOAD_FACT_TABLES_GUIDE.md) for details on each command and workflow examples.**
+**See [ETL_COMMAND_SEQUENCE.md](ETL_COMMAND_SEQUENCE.md) for workflow examples.**
 
 ---
 
@@ -162,7 +186,7 @@ python -m src.etl.main --load-fact-tables
    - Each JSON file contains all events for one match
    - Events include: passes, shots, fouls, substitutions, tactical shifts, etc.
    - Average 3,460 events per match
-   - Total: **1,362,577+ events** across 830 CSV matches
+   - Total: **2,675,770+ events** loaded into fact_match_events
 
 4. **Per-File Transaction Isolation**
    - Each JSON file loaded in its own database transaction
@@ -366,7 +390,7 @@ To use real FBRef stats instead of mock data:
 │                                                                 │
 │  GitHub: StatsBomb/open-data          CSV Files               │
 │  ├─ 380 EPL event JSONs              ├─ E0Season_*.csv       │
-│  │  (1.36M+ events)                  │  (830 matches)        │
+│  │  (2.67M+ events)                  │  (830 matches)        │
 │  │                                   │                       │
 │  └─ events/15500.json                Excel Files            │
 │     events/15501.json                ├─ stadiums.xlsx       │
@@ -1093,11 +1117,12 @@ git push origin main
 - [x] Database schema created (21 tables)
 - [x] Dimensions populated (17.5K dates, 31 teams, 6.8K players, etc.)
 - [x] Fact_match loaded (830 matches from CSV)
-- [x] **Fact_match_events loaded (1.36M events from StatsBomb)** ✅
+- [x] **Fact_match_events loaded (2.67M events from StatsBomb)** ✅
 - [x] All FK constraints satisfied
-- [x] Mapping tables created (684 matches, 40 teams)
+- [x] Mapping tables created (380 matches, 40 teams)
 - [x] SQL scripts optimized and cleaned
-- [x] Documentation complete (3 comprehensive guides)
+- [x] Documentation complete (8 comprehensive guides)
+- [x] Date enrichment implemented (all events with calendar dates)
 - [x] Git repository ready for commit
 
 **Next Steps:**
