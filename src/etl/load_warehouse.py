@@ -100,17 +100,22 @@ def transform_and_load_dimensions():
         return {'success': False, 'total_rows': 0}
 
 
-def run_complete_etl_pipeline():
+def run_complete_etl_pipeline(limit_data=None):
     """Execute complete ETL pipeline: Extract → Clean → Transform → Load.
     
     Pipeline stages:
     1. EXTRACT: Load raw data to staging tables
     2. CLEAN: Apply data quality transformations
     3. TRANSFORM & LOAD: Process and upsert to data warehouse dimensions
+    
+    Args:
+        limit_data: Optional integer to limit StatsBomb files for testing
     """
     print("\n")
     print("="*70)
     print("COMPLETE ETL PIPELINE: EXTRACT -> CLEAN -> TRANSFORM -> LOAD".center(70))
+    if limit_data:
+        print(f"⚠️  TESTING MODE: Limiting StatsBomb events to {limit_data} files".center(70))
     print("="*70)
     
     pipeline_results = {}
@@ -119,7 +124,7 @@ def run_complete_etl_pipeline():
     print("\n" + "="*70)
     print("STEP 1: EXTRACTING DATA TO STAGING TABLES")
     print("="*70)
-    extract_success = load_all_staging()
+    extract_success = load_all_staging(limit_data=limit_data)
     pipeline_results['extract'] = extract_success
     
     if not extract_success:
