@@ -346,8 +346,8 @@ def load_events_from_file(file_path: Path, engine) -> int:
         match_date_str = None
         
         # Try to find and read the matches metadata file
-        # StatsBomb organizes by competition: 27 = EPL
-        matches_file = statsbomb_root / "data" / "matches" / "27" / "2023.json"
+        # StatsBomb organizes by competition: 2 = EPL, 27 = Season (2023-24)
+        matches_file = statsbomb_root / "data" / "matches" / "2" / "27.json"
         
         try:
             if matches_file.exists():

@@ -255,6 +255,7 @@ CREATE TABLE IF NOT EXISTS stg_events_raw (
     shot_outcome VARCHAR(50),
     shot_xg DECIMAL(10,6),
     duel_outcome VARCHAR(50),
+    match_date INT,
     raw_data JSON,
     status VARCHAR(20) DEFAULT 'LOADED',
     load_start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -263,7 +264,8 @@ CREATE TABLE IF NOT EXISTS stg_events_raw (
     INDEX idx_type (type),
     INDEX idx_status (status),
     INDEX idx_player_name (player_name),
-    INDEX idx_team_name (team_name)
+    INDEX idx_team_name (team_name),
+    INDEX idx_match_date (match_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- JSON STAGING TABLES
