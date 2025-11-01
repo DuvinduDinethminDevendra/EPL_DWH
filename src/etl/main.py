@@ -252,8 +252,14 @@ def load_fact_tables():
                                         print(f"    -> {row}")
                                     if len(rows) > 5:
                                         print(f"    ... and {len(rows)-5} more rows")
+                            # Print INSERT row count
+                            elif statement.strip().upper().startswith("INSERT"):
+                                print(f"    [OK] Inserted {result.rowcount:,} rows")
                         except Exception as e:
-                            print(f"\n  [ERROR] {str(e)}")
+                            error_msg = str(e)
+                            print(f"\n  [ERROR] Statement error in {script_name}:")
+                            print(f"    {error_msg}")
+                            print(f"    First 200 chars of SQL: {statement[:200]}...")
                             conn.rollback()
                             # Log failure
                             try:
@@ -266,11 +272,12 @@ def load_fact_tables():
                                         "phase": script_name,
                                         "stat": "FAILED",
                                         "end": datetime.now(),
-                                        "msg": f"Failed: {str(e)}"
+                                        "msg": f"Failed: {error_msg[:300]}"
                                     })
                                     log_conn.commit()
                             except:
                                 pass
+                            print(f"  [ABORT] Fact loading aborted due to error in {script_name}")
                             return False
                 
                 # Log successful completion of this step

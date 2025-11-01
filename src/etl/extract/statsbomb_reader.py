@@ -338,7 +338,7 @@ def load_events_from_file(file_path: Path, engine) -> int:
                 {"match_id": match_id}
             )
             if result.scalar() > 0:
-                logger.info(f"  ✓ Match {match_id} already processed, skipping")
+                logger.info(f"  [OK] Match {match_id} already processed, skipping")
                 return 0
         
         # ===== NEW: Read match date from matches.json metadata =====
@@ -508,7 +508,7 @@ def fetch_and_load_statsbomb_events() -> bool:
         logger.info(f"Total events loaded: {total_events}")
         logger.info(f"Skipped (already processed): {skipped_files}")
         logger.info(f"Failed files: {failed_files}")
-        logger.info(f"Status: {'✓ SUCCESS' if failed_files == 0 else '⚠ PARTIAL'}")
+        logger.info(f"Status: {'[OK] SUCCESS' if failed_files == 0 else '[WARNING] PARTIAL'}")
         logger.info("="*70 + "\n")
         
         return failed_files == 0
