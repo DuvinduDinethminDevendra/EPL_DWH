@@ -522,7 +522,8 @@ def truncate_staging_tables(log_job_name="etl_pipeline"):
         'stg_e0_match_raw',
         'stg_player_raw',
         'stg_player_stats_fbref',
-        'stg_team_raw'
+        'stg_team_raw',
+        'stg_events_raw'
     ]
     
     engine = get_engine()
