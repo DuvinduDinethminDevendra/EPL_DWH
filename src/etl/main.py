@@ -93,19 +93,24 @@ def run_demo(csv_path):
     pd.set_option("display.width", 200)
     print(df)       
 
-def run_full_etl_pipeline():
+def run_full_etl_pipeline(limit_data=None):
     """Run the complete ETL pipeline: Extract -> Transform -> Load to Staging + Dimensions
     
     IMPORTANT: This does NOT truncate staging tables. Keep staging data for fact table loading!
+    
+    Args:
+        limit_data: Optional integer to limit StatsBomb files for testing
     """
     print("\n" + "="*80)
     print("RUNNING COMPLETE EPL DWH ETL PIPELINE")
+    if limit_data:
+        print(f"⚠️  TESTING MODE: Limiting StatsBomb events to {limit_data} files")
     print("="*80)
     
     try:
         # Run complete pipeline (handles staging, cleaning, and dimension loads)
         # This populates staging tables with CSV and JSON data
-        run_complete_etl_pipeline()
+        run_complete_etl_pipeline(limit_data=limit_data)
         
         # ✅ KEEP STAGING DATA - Do NOT truncate yet
         # Staging tables needed for fact table loading in next step
@@ -119,7 +124,7 @@ def run_full_etl_pipeline():
         return False
 
 
-def run_full_etl_and_facts():
+def run_full_etl_and_facts(limit_data=None):
     """Complete integrated workflow: ETL + Load Facts + Cleanup
     
     This is the recommended command for full DWH population:
@@ -128,15 +133,20 @@ def run_full_etl_and_facts():
     3. Populate mapping tables (dim_team_mapping, dim_match_mapping)
     4. Load fact tables (fact_match, fact_match_events, fact_player_stats)
     5. THEN truncate staging tables (cleanup after successful load)
+    
+    Args:
+        limit_data: Optional integer to limit StatsBomb files for testing
     """
     print("\n" + "="*80)
     print("RUNNING INTEGRATED ETL + FACT LOADING PIPELINE")
+    if limit_data:
+        print(f"⚠️  TESTING MODE: Limiting StatsBomb events to {limit_data} files")
     print("="*80)
     
     try:
         # Step 1: Run full ETL to populate staging and dimensions
         print("\n[STEP 1/3] Extracting data and loading dimensions...")
-        if not run_full_etl_pipeline():
+        if not run_full_etl_pipeline(limit_data=limit_data):
             print("[ERROR] ETL pipeline failed")
             return False
         print("✅ Step 1 complete: Data extracted, staging populated, dimensions loaded")
@@ -957,6 +967,7 @@ def main():
     parser.add_argument("--load-fact-tables", action="store_true", help="Load fact tables from staging data (run after --full-etl)")
     parser.add_argument("--load-player-stats", action="store_true", help="Load fact_player_stats from staging data")
     parser.add_argument("--complete-player-pipeline", action="store_true", help="Master orchestration: Schema + Full ETL + Mock FBRef + Staging + Load Player Stats (all-in-one)")
+    parser.add_argument("--limit-data", type=int, default=None, help="Limit the number of StatsBomb JSON files to process (e.g., 10 out of 380 for testing)")
     
     args = parser.parse_args()
     csv_path = Path(__file__).parent.parent.parent.parent / "EPL_DWH" / "data" / "raw" / "csv" / "E0Season_20252026.csv"
@@ -966,19 +977,19 @@ def main():
     elif args.complete_player_pipeline:
         run_complete_player_pipeline()
     elif args.full_etl_and_facts:
-        run_full_etl_and_facts()
+        run_full_etl_and_facts(limit_data=args.limit_data)
     elif args.full_etl:
-        run_full_etl_pipeline()
+        run_full_etl_pipeline(limit_data=args.limit_data)
     elif args.load_fact_tables:
         load_fact_tables()
     elif args.load_player_stats:
         load_player_stats()
     elif args.staging:
         print("\nRunning staging load only...")
-        load_staging.load_all_staging()
+        load_staging.load_all_staging(limit_data=args.limit_data)
     elif args.warehouse:
         print("\nRunning complete warehouse pipeline (includes staging, cleaning, and dimensions)...")
-        run_complete_etl_pipeline()
+        run_complete_etl_pipeline(limit_data=args.limit_data)
     else:
         # Default demo mode
         run_demo(csv_path)

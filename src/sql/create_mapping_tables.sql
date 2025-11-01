@@ -2,6 +2,9 @@
 --  Create and Populate Mapping Tables
 -- ================================================================================================
 
+-- Disable FK checks temporarily (dim_match_mapping FK may not be satisfied yet)
+SET FOREIGN_KEY_CHECKS = 0;
+
 -- Create dim_team_mapping table
 CREATE TABLE IF NOT EXISTS dim_team_mapping (
     statsbomb_team_id INT PRIMARY KEY,
@@ -77,3 +80,6 @@ FROM (
 SELECT 'Match Mapping Results:' as status;
 SELECT COUNT(*) as total_match_mappings FROM dim_match_mapping;
 SELECT COUNT(DISTINCT statsbomb_match_id) as unique_statsbomb_matches FROM dim_match_mapping;
+
+-- Re-enable FK checks
+SET FOREIGN_KEY_CHECKS = 1;

@@ -160,10 +160,17 @@ def load_dim_player():
         return False
 
 
-def load_all_staging():
-    """Master orchestration function - load all staging tables from all sources."""
+def load_all_staging(limit_data=None):
+    """Master orchestration function - load all staging tables from all sources.
+    
+    Args:
+        limit_data: Optional integer to limit number of StatsBomb JSON files to process (for testing)
+    """
     print("\n" + "="*70)
     print("ETL STAGING LOAD - UNIFIED ORCHESTRATION")
+    print("="*70)
+    if limit_data:
+        print(f"⚠️  TESTING MODE: Limiting StatsBomb events to {limit_data} files")
     print("="*70)
     
     results = {}
@@ -175,7 +182,7 @@ def load_all_staging():
     results['api'] = write_staging_from_api()
     
     # Load StatsBomb events
-    results['statsbomb'] = fetch_and_load_statsbomb_events()
+    results['statsbomb'] = fetch_and_load_statsbomb_events(limit_files=limit_data)
     
     # Load CSV data (matches)
     results['csv'] = write_staging_from_csv()

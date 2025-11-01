@@ -444,7 +444,7 @@ def load_events_from_file(file_path: Path, engine) -> int:
         return 0
 
 
-def fetch_and_load_statsbomb_events() -> bool:
+def fetch_and_load_statsbomb_events(limit_files=None) -> bool:
     """Main orchestration function.
     
     Steps:
@@ -453,11 +453,16 @@ def fetch_and_load_statsbomb_events() -> bool:
     3. Load each into stg_events_raw
     4. Record manifest entries
     
+    Args:
+        limit_files: Optional integer to limit number of files to process (for testing)
+    
     Returns:
         True if successful, False otherwise
     """
     logger.info("="*70)
     logger.info("STATSBOMB EVENTS EXTRACTION & STAGING")
+    if limit_files:
+        logger.info(f"⚠️  TESTING MODE: Processing only {limit_files} files (out of 380)")
     logger.info("="*70)
     
     try:
@@ -476,6 +481,11 @@ def fetch_and_load_statsbomb_events() -> bool:
         if not event_files:
             logger.error("No event files found in StatsBomb repository")
             return False
+        
+        # Apply limit if specified
+        if limit_files:
+            event_files = event_files[:limit_files]
+            logger.info(f"Limited to {len(event_files)} files for testing")
         
         logger.info(f"Found {len(event_files)} event files")
         
