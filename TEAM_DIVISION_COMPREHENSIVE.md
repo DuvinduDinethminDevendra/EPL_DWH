@@ -71,6 +71,84 @@ Your EPL DWH naturally divides into 5 independent modules with **progressive dif
 
 ## 👥 Member Assignments & Scope
 
+### **COORDINATOR: Infrastructure & Audit Trail** 🏗️ INFRASTRUCTURE
+
+**Title:** "ETL Pipeline Coordination & Monitoring Infrastructure"  
+**Role:** Infrastructure (not a data-focused member, but critical for team success)  
+**Why Infrastructure:** Audit tables are **shared infrastructure** that ALL members write to, not isolated components.
+
+**Responsibilities:**
+- Maintain audit/logging infrastructure (etl_log, etl_file_manifest, etl_json_manifest)
+- All 5 members INSERT records to track their work
+- Coordinator: Reviews logs, tracks progress, ensures data quality
+- Manage Git workflow (create dev branch, review PRs, merge branches)
+- Run integration tests after each member completes
+- Schedule and run weekly team syncs
+- Coordinate viva preparation and rehearsals
+- Troubleshoot conflicts if they arise
+
+**Files Owned:**
+```
+Database audit/monitoring (ALL members WRITE):
+├── etl_log (written by members 1-5, owned/monitored by coordinator)
+├── etl_file_manifest (CSV/Excel file tracking)
+├── etl_json_manifest (StatsBomb JSON event tracking)
+
+Git infrastructure (Coordinator only):
+├── dev branch (main integration branch)
+├── PR reviews & approvals
+└── Merge orchestration (1→2→3→4→5)
+
+Testing/Validation:
+└── Integration test queries after each member
+```
+
+**Deliverables (Coordinator Role):**
+- [ ] Create `dev` branch and all feature branches
+- [ ] Set up git workflow (branching strategy)
+- [ ] Maintain audit tables schema (etl_log, manifests)
+- [ ] Grant permissions: Members can INSERT to audit tables (read-only to others)
+- [ ] Run weekly integration tests after each member
+- [ ] Track progress via etl_log queries
+- [ ] Schedule weekly team syncs
+- [ ] Prepare viva rehearsal plan
+- [ ] Create final integration test report
+
+**Coordinator Checklist:**
+- [ ] Audit table schemas created (etl_log, etl_file_manifest, etl_json_manifest)
+- [ ] Database permissions set: Members have INSERT on audit tables
+- [ ] Feature branches created: feature/member1-extraction through feature/member5-analytics
+- [ ] Weekly sync meeting scheduled (Monday 2 PM recommended)
+- [ ] After Member 1: Run integration test, verify staging data
+- [ ] After Member 2: Run integration test, verify schema
+- [ ] After Member 3: Run integration test, verify dimensions (45K rows)
+- [ ] After Member 4: Run integration test, verify facts (1.3M rows, zero duplicates)
+- [ ] After Member 5: Full end-to-end test, Power BI connectivity
+- [ ] Create audit trail report (etl_log with all phases)
+- [ ] Viva: Present 2-minute intro covering architecture & team coordination
+
+**Why This Maintains Isolation:**
+```
+BEFORE (without Coordinator):
+├─ Member 1 writes to etl_log ❌ (crosses boundary)
+├─ Member 2 writes to etl_log ❌ (crosses boundary)
+├─ Member 3 writes to etl_log ❌ (crosses boundary)
+├─ Member 4 writes to etl_log ❌ (crosses boundary)
+└─ Member 5 writes to etl_log ❌ (crosses boundary)
+   Result: 5 members touching 1 table = CONFLICTS
+
+AFTER (with Coordinator):
+├─ Coordinator OWNS etl_log ✅ (single owner)
+├─ Members 1-5 INSERT to etl_log (audit-only, no conflicts)
+├─ All members: SELECT-only access to other tables
+└─ Clear infrastructure separation
+   Result: All write to OWNED table, single owner = NO CONFLICTS
+```
+
+**Key Point:** The Coordinator role is **NOT a 6th member** (keeps it 5 members for viva), but rather the person running the git workflow, team syncs, and integration tests.
+
+---
+
 ### **MEMBER 1: ETL Pipeline & Data Extraction** 🟢 EASY
 
 **Title:** "Data Extraction & Pipeline Orchestration"  
@@ -90,12 +168,19 @@ Your EPL DWH naturally divides into 5 independent modules with **progressive dif
 
 **Files Owned:**
 ```
-src/etl/extract/statsbomb_reader.py
-src/etl/extract/csv_reader.py
-src/etl/extract/api_reader.py
-src/etl/extract/excel_reader.py
-src/etl/staging/load_staging.py
-src/etl/config.py (data path configs)
+ISOLATED FILES (Only you modify):
+├── src/etl/extract/statsbomb_reader.py
+├── src/etl/extract/csv_reader.py
+├── src/etl/extract/api_reader.py
+├── src/etl/extract/excel_reader.py
+├── src/etl/staging/load_staging.py
+└── src/etl/config.py (data path configs)
+
+AUDIT TABLES (INSERT permission only, Coordinator owns):
+├── etl_log (insert your phase status/errors)
+├── etl_file_manifest (insert file processing records)
+└── etl_json_manifest (insert event deduplication records)
+   ✅ NO conflicts: Single owner (Coordinator), all members INSERT audit data
 ```
 
 **Deliverables:**
@@ -417,18 +502,46 @@ git push origin feature/member5-analytics
 
 ## 🔄 Integration Points & File Ownership
 
+### **Audit Trail Infrastructure (Coordinator Owned)** 🏗️
+
+**Shared Audit Tables (All members WRITE, Coordinator OWNS):**
+```
+COORDINATOR INFRASTRUCTURE:
+├─ etl_log (written by M1, M2, M3, M4, M5)
+│  └─ Tracks: job name, phase, status, start/end time, messages
+│  └─ Owner: Coordinator (single point of truth)
+│  └─ Permission: All members INSERT, Coordinator SELECT/monitor
+│
+├─ etl_file_manifest (written by M1 for CSV/Excel files)
+│  └─ Tracks: File name, hash, row count, load status
+│  └─ Prevents duplicate CSV/Excel file loading
+│
+└─ etl_json_manifest (written by M4 for StatsBomb events)
+   └─ Tracks: JSON file name, event_id range, load status
+   └─ Prevents duplicate event insertion (critical at 1.3M scale)
+
+WHY THIS DESIGN:
+✅ Single owner (Coordinator) = Clear responsibility
+✅ All members insert audit-only data = No file conflicts
+✅ Prevents data duplication (manifest system)
+✅ Maintains audit trail for all phases
+✅ No merge conflicts (different record types per member)
+```
+
 ### **How Members Connect (Minimal Conflicts)**
 
 ```
 MEMBER 1 EXTRACTS DATA
   ├─ Output: Staging tables (stg_events_raw, stg_e0_match_raw, stg_team_raw, stg_player_stats_fbref)
   ├─ 1.3M+ events, 830 matches, team/player/referee data
+  ├─ Writes to: etl_log, etl_file_manifest (for CSV dedup), etl_json_manifest (for JSON dedup)
   └─ Interface: Staging table schemas documented
 
 MEMBER 2 CREATES SCHEMA
   ├─ Input: Staging table schemas (from M1)
   ├─ Output: 21 tables (dimensions, facts, mappings, audit)
   ├─ 15+ foreign key constraints
+  ├─ Writes to: etl_log (schema validation status)
   └─ Interface: SQL DDL files created
 
 MEMBER 3 LOADS DIMENSIONS
@@ -436,6 +549,7 @@ MEMBER 3 LOADS DIMENSIONS
   ├─ Output: 6 dimension tables (45K+ rows)
   ├─ Reads: stg_team_raw, stg_events_raw
   ├─ Writes: dim_date, dim_team, dim_player, dim_referee, dim_stadium, dim_season
+  ├─ Audit: Writes to etl_log (dimension load status, row counts)
   └─ Interface: Dimension validation queries
 
 MEMBER 4 LOADS FACTS
@@ -443,6 +557,7 @@ MEMBER 4 LOADS FACTS
   ├─ Output: 3 fact tables (1.3M+ events), 2 mapping tables
   ├─ Reads: stg_events_raw, stg_e0_match_raw, all dimensions
   ├─ Writes: fact_match, fact_match_events, fact_player_stats, mappings
+  ├─ Audit: Writes to etl_log, etl_json_manifest (deduplication tracking)
   └─ Interface: Fact validation & reconciliation queries
 
 MEMBER 5 CREATES BI LAYER
