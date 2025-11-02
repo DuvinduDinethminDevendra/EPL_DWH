@@ -75,10 +75,30 @@ Enhanced the event extractor to read match dates from StatsBomb's `matches.json`
 ### 1. Prerequisites
 
 - **Docker Desktop** (MySQL 8.0 container)
-- **Python 3.9+** with virtualenv (`.venv` already configured)
+- **Python 3.9+** 
 - **Git**
 
-### 2. Start the Database (Docker)
+### 2. Create Python Virtual Environment (`.venv`)
+
+If you don't have a `.venv` folder yet, create it:
+
+```powershell
+# Navigate to project root
+cd d:\myPortfolioProject\EPL_DWH
+
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment (Windows PowerShell)
+.\.venv\Scripts\Activate.ps1
+
+# If you get execution policy error, run this first:
+# Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+**Note:** You should see `(.venv)` prefix in your PowerShell terminal after activation, indicating the virtual environment is active.
+
+### 3. Start the Database (Docker)
 
 ```powershell
 # Start MySQL container from docker-compose.yml
@@ -88,7 +108,7 @@ docker-compose up -d
 docker ps | findstr epl_mysql
 ```
 
-### 3. Install Python Dependencies
+### 4. Install Python Dependencies
 
 ```powershell
 # Install all required packages from requirements.txt
@@ -103,13 +123,17 @@ pip install -r requirements.txt
 - `pymysql` - MySQL database driver
 - `cryptography` - SSL/TLS for secure database connections
 
-### 4. Activate Python Environment
+### 5. Verify Environment Setup
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
+# Test that dependencies are installed correctly
+python -c "import sqlalchemy, pandas, requests; print('✅ All dependencies installed!')"
+
+# Test database connection
+python -m src.etl.main --test-db
 ```
 
-### 5. The ETL Pipeline is Ready to Use
+### 6. The ETL Pipeline is Ready to Use
 
 All data has been successfully loaded! The pipeline includes:
 - ✓ StatsBomb event extraction (1.3M+ events)
