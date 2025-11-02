@@ -860,46 +860,17 @@ ORDER BY TABLE_NAME;
 
 ## 📚 Documentation
 
-### Primary Guides
-- **[ETL_PIPELINE_GUIDE.md](ETL_PIPELINE_GUIDE.md)** ⭐ **START HERE** 
-  - Complete step-by-step ETL process explanation
-  - Why each step is necessary
-  - Data transformations and flows
-  - Performance notes and design decisions
+### Essential Guides
+| Document | Purpose | Read Time |
+|----------|---------|-----------|
+| **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** | Quick setup, commands, data status | 5 min |
+| **[ETL_PIPELINE_GUIDE.md](ETL_PIPELINE_GUIDE.md)** | Complete ETL process explanation | 15 min |
+| **[DATABASE_RELATIONSHIPS_ER_DIAGRAM.md](DATABASE_RELATIONSHIPS_ER_DIAGRAM.md)** | Schema relationships & ER diagram | 10 min |
+| **[FACT_CONSTELLATION_QUICK_REFERENCE.md](FACT_CONSTELLATION_QUICK_REFERENCE.md)** | Schema pattern explanation | 3 min |
+| **[MAINTENANCE.md](MAINTENANCE.md)** | Operations & troubleshooting | 10 min |
 
-- **[SQL_SCRIPTS_REFERENCE.md](SQL_SCRIPTS_REFERENCE.md)** 
-  - Quick reference for all SQL scripts
-  - Execution instructions
-  - Troubleshooting guide
-  - Performance benchmarks
-
-- **[LOAD_FACT_TABLES_GUIDE.md](LOAD_FACT_TABLES_GUIDE.md)**
-  - Detailed `--load-fact-tables` command walkthrough
-  - Fact loading strategy
-  - Event aggregation and mapping rebuild
-
-- **[MAPPING_TABLES_GUIDE.md](MAPPING_TABLES_GUIDE.md)** ⭐ **NEW**
-  - How mapping tables bridge StatsBomb & CSV data
-  - dim_team_mapping (StatsBomb team IDs ↔ EPL team IDs)
-  - dim_match_mapping (StatsBomb match IDs ↔ CSV match IDs)
-  - Real-world query examples
-  - Troubleshooting unmapped records
-
-- **[STAGING_TABLE_CLEANUP.md](STAGING_TABLE_CLEANUP.md)** ⭐ **NEW**
-  - Automatic staging table truncation after ETL
-  - Why clean up staging tables (DWH best practices)
-  - Architecture decision: Truncate + Manifest tables for audit trail
-  - Staging cleanup in each ETL command
-  - Manual verification steps
-
-### Additional Resources
-- **`PROJECT_STATUS.md`** — Project status & data inventory (Oct 2025)
-- **`MAINTENANCE.md`** — Operations & troubleshooting guide
-- **`DOCUMENTATION_GUIDE.md`** — Navigation guide for 10+ user roles
-- **`CURRENT_STATUS.md`** — Live pipeline status, progress metrics
-- **`EXTRACTION_IMPROVEMENTS.md`** — Technical details on EPL filtering
-- **`DATABASE_SCHEMA_STRUCTURE.md`** — Full schema documentation
-- **`docker-compose.yml`** — MySQL service configuration
+### File Organization
+- **`docker-compose.yml`** — MySQL 8.0 service configuration
 - **`requirements.txt`** — Python dependencies
 
 
