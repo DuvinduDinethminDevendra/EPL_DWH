@@ -88,13 +88,28 @@ docker-compose up -d
 docker ps | findstr epl_mysql
 ```
 
-### 3. Activate Python Environment
+### 3. Install Python Dependencies
+
+```powershell
+# Install all required packages from requirements.txt
+pip install -r requirements.txt
+```
+
+**What's included in requirements.txt:**
+- `sqlalchemy` - ORM for database operations
+- `pandas` - Data manipulation and CSV handling
+- `requests` - HTTP client for StatsBomb API
+- `tqdm` - Progress bars for long-running operations
+- `pymysql` - MySQL database driver
+- `cryptography` - SSL/TLS for secure database connections
+
+### 4. Activate Python Environment
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-### 4. The ETL Pipeline is Ready to Use
+### 5. The ETL Pipeline is Ready to Use
 
 All data has been successfully loaded! The pipeline includes:
 - ✓ StatsBomb event extraction (1.3M+ events)
