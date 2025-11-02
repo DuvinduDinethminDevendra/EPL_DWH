@@ -1,10 +1,6 @@
 # ETL Pipeline Guide - Complete Walkthrough# EPL Data Warehouse - ETL Pipeline Documentation
 
-
-
 An in-depth guide to understanding and running the complete EPL Data Warehouse ETL pipeline.## Table of Contents
-
-
 
 ---1. [Overview](#overview)
 
@@ -24,8 +20,6 @@ An in-depth guide to understanding and running the complete EPL Data Warehouse E
 
 5. [Troubleshooting](#troubleshooting)## Overview
 
-
-
 ---This document describes the **complete end-to-end ETL process** for the EPL Data Warehouse, including:
 
 - Why each step is necessary
@@ -35,8 +29,6 @@ An in-depth guide to understanding and running the complete EPL Data Warehouse E
 - How data flows through the warehouse
 
 The ETL pipeline has **3 main stages**:- The final validated state
-
-
 
 ### Stage 1: **STAGING** (Extract & Load Raw Data)**Current Status:** ✅ **FULLY OPERATIONAL**
 
@@ -55,8 +47,6 @@ The ETL pipeline has **3 main stages**:- The final validated state
 - Target: `dim_*` tables (cleaned dimensions)
 
 - Purpose: Clean, deduplicate, standardize data## Architecture
-
-
 
 ### Stage 3: **FACT TABLES** (Load Business Facts)### Data Sources
 
@@ -364,23 +354,17 @@ python -m src.etl.main --complete-player-pipeline#### **Step 3.1-3.6: Load Dimen
 
 6. Populate mapping tables**Dimensions loaded:**
 
-
-
 **Total timing:** ~20-30 minutes1. **`dim_date`** (17,533 rows)
 
    - Why: Every match and event needs a date key
 
 **Use case:** Complete initialization from scratch   - Contains: All dates from 1990-2025
 
-
-
 ---2. **`dim_season`** (7 rows)
 
    - Why: Group matches and events by EPL season
 
 ## Step-by-Step Execution   - Contains: 2018-2019 through 2024-2025
-
-
 
 ### Scenario A: First-Time Setup3. **`dim_team`** (31 rows - 20 EPL + UNKNOWN)
 
@@ -534,8 +518,6 @@ ENDstatsbomb_team_id  ←→  dim_team_id
 
 - "Mohamed Salah", "M. Salah", "Salah"#### **Step 5.1: Load Fact Match Table**
 
-
-
 **Solution:** **Script:** `src/sql/load_fact_match.sql`
 
 1. Extract from event data (StatsBomb provides clean names)
@@ -547,8 +529,6 @@ ENDstatsbomb_team_id  ←→  dim_team_id
 - CSV matches provide business key data (teams, dates, scores)
 
 **Result:** 6,809 unique players- Creates the 830 match facts that events will link to
-
-
 
 ---**What it does:**
 
@@ -584,19 +564,9 @@ SELECT
 
 ``````
 
-
-
 **Result:** 684 match pairs matched**Result:** `fact_match` with **830 rows** ✓
 
-
-
-------
-
-
-
 ### Team ID Translation#### **Step 5.2-5.4: Load Fact Match Events (3-Step Optimized Process)**
-
-
 
 **Problem:** StatsBomb team IDs ≠ dim_team surrogate keys**Problem being solved:**
 

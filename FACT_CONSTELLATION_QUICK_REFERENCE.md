@@ -235,4 +235,3 @@ This is ONLY possible with Fact Constellation pattern
 ---
 
 **Your schema = Professional-grade data warehouse architecture** ⭐
-

@@ -70,6 +70,7 @@ python -m src.etl.main --test-db
 
 ### Fact Tables
 | Table | Rows | Purpose |
+
 |-------|------|---------|
 | fact_match | 830 | Match summaries with scores/stats |
 | fact_match_events | 2.6M+ | Detailed event-by-event breakdown |
@@ -77,6 +78,7 @@ python -m src.etl.main --test-db
 
 ### Dimension Tables
 | Table | Rows | Purpose |
+
 |-------|------|---------|
 | dim_date | 17.5K | Calendar dates (1990-2025) |
 | dim_team | 25 | EPL teams + sentinel |
@@ -87,12 +89,14 @@ python -m src.etl.main --test-db
 
 ### Mapping/Bridge Tables
 | Table | Rows | Purpose |
+
 |-------|------|---------|
 | dim_team_mapping | ~40 | StatsBomb IDs → DWH IDs |
 | dim_match_mapping | 380 | Match ID translation |
 
 ### Audit/Metadata Tables
 | Table | Purpose |
+
 |-------|---------|
 | ETL_Log | All pipeline operations |
 | ETL_Events_Manifest | Event file tracking (deduplication) |
@@ -347,4 +351,3 @@ LIMIT 10;
 **Status**: ✅ Ready for production use  
 **Last Tested**: November 1, 2025  
 **Data Volume**: 2.6M+ events loaded successfully
-
