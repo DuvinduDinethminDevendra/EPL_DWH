@@ -524,7 +524,6 @@ To use real FBRef stats instead of mock data:
                 └─────────────────────────┘
 ```
 
-
 ---
 
 ## GitHub & Repository Integration
@@ -893,14 +892,13 @@ WHERE TABLE_SCHEMA = 'epl_dw'
 ORDER BY TABLE_NAME;
 ```
 
-
-
 ---
 
 ## 📚 Documentation
 
 ### Essential Guides
 | Document | Purpose | Read Time |
+
 |----------|---------|-----------|
 | **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** | Quick setup, commands, data status | 5 min |
 | **[ETL_PIPELINE_GUIDE.md](ETL_PIPELINE_GUIDE.md)** | Complete ETL process explanation | 15 min |
@@ -911,7 +909,6 @@ ORDER BY TABLE_NAME;
 ### File Organization
 - **`docker-compose.yml`** — MySQL 8.0 service configuration
 - **`requirements.txt`** — Python dependencies
-
 
 ---
 
@@ -1207,7 +1204,6 @@ Loads raw data from multiple sources into staging tables:
 
 ### **Stage 2: Transform & Load (Dimensions)**
 Cleans and transforms staging data into dimension tables:
-
 
 ---
 

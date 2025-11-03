@@ -5,9 +5,9 @@ import os
 
 DATABASE = {
     "user": os.getenv("MYSQL_USER", "root"),
-    "password": os.getenv("MYSQL_PASSWORD", "1234"),
+    "password": os.getenv("MYSQL_PASSWORD", "lakipop123654"),
     "host": os.getenv("MYSQL_HOST", "localhost"),
-    "port": os.getenv("MYSQL_PORT", "3307"),
+    "port": os.getenv("MYSQL_PORT", "3306"),
     "db": os.getenv("MYSQL_DB", "epl_dw"),
 }
 
