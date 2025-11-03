@@ -1,8 +1,8 @@
-
 import argparse
 from .extract import csv_reader
 from .transform import clean
 from .staging import load_staging
+from .staging.update_dim_date_is_matchday import update_dim_date_is_matchday
 from .load_warehouse import run_complete_etl_pipeline
 from .config import RAW_DATA_DIR
 from pathlib import Path
@@ -12,6 +12,7 @@ import subprocess
 import os
 from tqdm import tqdm
 from datetime import datetime
+
 
 def generate_player_stats_mock_data():
     """Generate valid player stats mock data with real EPL team and player names"""
@@ -111,12 +112,19 @@ def run_full_etl_pipeline(limit_data=None):
         # Run complete pipeline (handles staging, cleaning, and dimension loads)
         # This populates staging tables with CSV and JSON data
         run_complete_etl_pipeline(limit_data=limit_data)
-        
+
+        # After staging is populated, update dim_date.is_matchday from stg_e0_match_raw
+        try:
+            engine = get_engine()
+            update_dim_date_is_matchday(engine)
+            print("✅ dim_date.is_matchday updated from stg_e0_match_raw")
+        except Exception as e:
+            print(f"[WARNING] dim_date update failed: {e}")
+
         # ✅ KEEP STAGING DATA - Do NOT truncate yet
         # Staging tables needed for fact table loading in next step
         print("\n✅ [OK] Staging tables preserved for fact table loading")
         print("    (Run --load-fact-tables next, or use --full-etl-and-facts for complete workflow)")
-        
         return True
         
     except Exception as e:
@@ -988,6 +996,13 @@ def main():
     elif args.staging:
         print("\nRunning staging load only...")
         load_staging.load_all_staging(limit_data=args.limit_data)
+        # Update dim_date after staging-only run
+        try:
+            engine = get_engine()
+            update_dim_date_is_matchday(engine)
+            print("✅ dim_date.is_matchday updated after staging-only run")
+        except Exception as e:
+            print(f"[WARNING] dim_date update failed after staging-only run: {e}")
     elif args.warehouse:
         print("\nRunning complete warehouse pipeline (includes staging, cleaning, and dimensions)...")
         run_complete_etl_pipeline(limit_data=args.limit_data)
