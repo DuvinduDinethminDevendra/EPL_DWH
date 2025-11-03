@@ -13,5 +13,5 @@ def upsert_dim(engine, table_name, df, key_columns):
             delete_sql = f"DELETE FROM {table_name} WHERE {where_clause}"
             params = {k: row[k] for k in key_columns}
             conn.execute(text(delete_sql), params)
-        # bulk insert via pandas or COPY is recommended; left as an exercise
+        
     return True
