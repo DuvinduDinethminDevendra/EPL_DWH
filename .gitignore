@@ -16,3 +16,21 @@ mysql_data/binlog.*
 mysql_data/auto.cnf
 mysql_data/binlog.index
 
+# Ignore Adminer runtime data
+adminer_data/
+adminer_data/sessions/
+adminer_data/tmp/
+adminer_data/upload/
+adminer_data/*.log
+adminer_data/*.sql
+adminer_data/*.sqlite
+adminer_data/*.db
+adminer_data/*.zip
+adminer_data/*.tar
+
+# Ignore IDE specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+

@@ -2,6 +2,10 @@
 Reads connection info from environment variables.
 """
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 DATABASE = {
     "user": os.getenv("MYSQL_USER", "root"),

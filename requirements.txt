@@ -13,3 +13,7 @@ openpyxl
 tqdm
 prefect  # optional orchestration
 great_expectations  # optional DQ
+
+# PyQt6 Desktop Application
+PyQt6>=6.6.0
+PyQt6-Charts>=6.6.0
